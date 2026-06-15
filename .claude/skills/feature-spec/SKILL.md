@@ -20,12 +20,15 @@ Like its siblings, it owns requirements, not design — it never decides tech st
 
 ## Should this feature get its own spec?
 
-Not every feature earns a file — over-documenting is its own failure. Apply this gate before writing:
+Not every feature earns a file, and not every feature fits in *one* file — both under- and over-documenting are failures. Pick the right **size** before writing:
 
-- **Write a feature spec when** the feature has real depth: multiple user flows or states, non-obvious rules or limits, edge cases and failure modes, or enough ambiguity that the team would otherwise guess.
-- **Leave it in the PRD when** it's a simple, single-behaviour requirement that a PRD row already captures. Don't split a one-line requirement into a document.
+- **Leave it in the PRD when** it's a simple, single-behaviour requirement that a PRD row already captures. Don't split a one-line requirement into a document. (The requirement still gets built — see the note below; "no spec" doesn't mean "no feature.")
+- **Write one feature spec when** the feature has real depth — multiple user flows or states, non-obvious rules or limits, edge cases and failure modes — but is still *one* coherent thing.
+- **Write a parent spec + child specs when** the feature is really several. If a single PRD requirement contains **≥3 independent sub-behaviours**, each with its own flow, states, and acceptance criteria (e.g. notifications = assignment + mention + comment triggers, each detected differently), don't cram them into one sprawling file. Write a thin **parent** spec that owns the shared surface and links to **child** specs, one per sub-behaviour. See "Splitting into sub-features" below.
 
-If it's borderline, ask the user whether the feature is meaty enough to warrant its own spec rather than defaulting to creating one.
+If it's borderline between these, ask the user which size fits rather than defaulting.
+
+> **A spec-less requirement is still a real requirement.** Leaving a feature in the PRD means it has no *spec*, not that it won't be built — `feature-developer` builds it directly from the PRD row. Don't treat "too small for a spec" as "out of scope."
 
 ## Two modes
 
@@ -46,7 +49,7 @@ Read `specs/PRD.md` and pin down what this feature inherits, so you expand the P
 - **Persona & user stories** — the user and the stories that touch this feature, so the detail serves a real need.
 - **Constraints & non-goals** — anything in the PRD that bounds this feature (platform limits, cost, "not X"). Honour them.
 
-**Don't contradict or outgrow the PRD silently.** If specifying the feature surfaces new top-level scope (a new user type, a new integration, a new non-goal to revise), route that back through the `product-requirements` skill to update the PRD — then continue here. The PRD stays the source of truth for *what exists*; this spec details *how it behaves*.
+**Don't contradict or outgrow the PRD silently.** If specifying the feature surfaces new top-level scope — a new user type, a new integration, a new non-goal to revise, **or a sibling feature the PRD never declared** (e.g. this feature depends on "comments" but there's no PRD row for it) — route that back through the `product-requirements` skill to add/update the PRD row, then continue here. The PRD stays the source of truth for *what exists*; this spec details *how it behaves*. (A missing dependency you merely *note* in §8 isn't enough if it's genuinely a new feature — that's new scope and belongs in the PRD.)
 
 ### Step 1 — Gather the feature detail
 
@@ -60,7 +63,7 @@ Assume sensible defaults for lower-impact detail (exact copy, pixel-level layout
 
 ### Step 2 — Shape the spec
 
-- **Detailed requirements** with IDs that **extend the parent** for traceability: if the PRD parent is FR-02, this spec uses FR-02.1, FR-02.2, … Each is atomic and testable; split anything with an "and".
+- **Detailed requirements** with IDs that **extend the parent** for traceability: if the PRD parent is FR-02, this spec uses FR-02.1, FR-02.2, … Each is atomic and testable; split anything with an "and". (In a child spec under a split feature, extend one level further — FR-03.1.x — see "Splitting into sub-features".)
 - **Define every state explicitly** (empty / loading / error / success / boundary) and the behaviour in each.
 - **Acceptance criteria** as observable checks — what a reviewer would do to confirm the feature is done.
 - **Mark unresolved behaviour** as ⚠️ TBD inline and mirror it into Open Questions.
@@ -74,6 +77,18 @@ Assume sensible defaults for lower-impact detail (exact copy, pixel-level layout
 4. Present it to the user and revise before it's relied on for build. Once approved, the natural next step is the `feature-developer` skill, which implements this feature from this spec.
 
 ---
+
+## Splitting into sub-features
+
+When the "should this get a spec?" gate lands on **parent + children** (a single PRD requirement holding ≥3 independent sub-behaviours), model it as a thin parent over child specs instead of one sprawling file:
+
+1. **Layout.** Put the children in a folder named after the feature: `specs/features/<feature>/<sub-feature>.md`, and the parent at `specs/features/<feature>/_overview.md` (the `_` sorts it first). The parent is *thin* — it owns the shared surface (the common UI/center, shared rules, cross-cutting states) and **links to each child**; it does not restate child detail.
+2. **IDs nest one more level.** The PRD parent is FR-0X; the parent spec groups by FR-0X.n (one per sub-feature); each child spec owns FR-0X.n.y. So notifications (FR-03) → assignment child owns FR-03.1.x, mention child FR-03.2.x, comment child FR-03.3.x. Keep them atomic and testable as usual.
+3. **Each child is a normal feature spec** (same template) and **buildable on its own** — its own flow, states, acceptance criteria, dependencies. This is what lets `feature-developer` build the unblocked children now and defer a blocked one (e.g. a child that depends on a feature that doesn't exist yet) without blocking the whole feature.
+4. **PRD §7 index** links to the parent (`_overview.md`) against the PRD requirement ID; the parent links down to the children. Don't list every child in the PRD — keep the index at one row per PRD requirement.
+5. **Don't over-split.** Two sub-behaviours, or sub-behaviours that share most of their flow, stay one spec. Splitting is for genuinely independent sub-features, not for chopping a cohesive feature into fragments.
+
+> **A blocked or out-of-scope sub-feature is normal.** If one child depends on a feature that doesn't exist (e.g. comment-notifications need a comments feature the PRD never declared), mark that child blocked, capture the missing sibling as a dependency, and — because it's *new product scope* — route it up via the `product-requirements` skill to add the PRD row (see Step 0). The other children proceed.
 
 ## Output: specs/features/<feature>.md
 
@@ -128,7 +143,7 @@ This skill owns one feature's requirements in depth — not the product, not the
 
 - **Up:** don't restate or redecide product-level scope; that's the PRD. Expand it and link back.
 - **Down:** don't design the implementation; that's `ARCHITECTURE.md`. Capture data/integration *needs* as dependencies, not schemas or endpoints.
-- **Sideways:** keep each feature in its own file. If two features are deeply entangled, note the dependency and link — don't merge them into one sprawling spec.
+- **Sideways:** keep distinct features in distinct files. If two features are deeply entangled, note the dependency and link — don't merge them into one sprawling spec. (Splitting *one* feature into a parent + children — see "Splitting into sub-features" — is the opposite move and is fine; that's still one feature, just sized to fit.)
 
 ## Maintenance mode rules
 
@@ -143,5 +158,8 @@ This skill owns one feature's requirements in depth — not the product, not the
 **Example 1 — meaty feature, gets a spec**
 PRD has `FR-01: AI Daily Brief` with a few rows. The user says "spec out the daily brief." It warrants depth (auto-generation, manual refresh, a fallback path, multiple states). The skill anchors to FR-01, then specifies: the generation flow, requirements FR-01.1…n, states (loading, generated, fallback, empty), rules (length, must cite issue keys), failure behaviour (API down → rule-based fallback with no visible error), and acceptance criteria. Writes `specs/features/ai-daily-brief.md` and adds it to the PRD §7 index linked to FR-01. No model names or API code — those are deferred to ARCHITECTURE.md.
 
-**Example 2 — too small, no spec**
-PRD has `FR-09: A footer shows the app version.` The user asks to spec it. The skill notes this is a single, unambiguous behaviour already captured by the PRD row, and recommends leaving it there rather than creating a near-empty file — offering to add a clarifying acceptance line to the PRD instead.
+**Example 2 — too small, no spec (but still gets built)**
+PRD has `FR-09: A footer shows the app version.` The user asks to spec it. The skill notes this is a single, unambiguous behaviour already captured by the PRD row, and recommends leaving it there rather than creating a near-empty file — offering to add a clarifying acceptance line to the PRD instead. It's explicit that this is *not* descoping: `feature-developer` will build it straight from the PRD row, no spec file required.
+
+**Example 3 — too big for one file, splits into children**
+PRD has `FR-03: Members are notified of task changes relevant to them (assigned, mentioned, commented).` That's three independent sub-behaviours — assignment, @mention, and comment triggers each detect differently and have their own states — plus a shared notification center. The skill writes a thin parent `specs/features/notifications/_overview.md` (the center, shared rules, FR-03.1/2/3 grouping) linking to children `assignment.md` (FR-03.1.x), `mention.md` (FR-03.2.x), and `comment.md` (FR-03.3.x). The comment child depends on a comments feature the PRD never declared, so the skill routes that up to `product-requirements` to add a PRD row and marks the child blocked — the other two children proceed and are independently buildable. The PRD §7 index gets one row pointing at the parent. It does **not** merge all three into one sprawling `notifications.md`, nor split the cohesive task-board feature (Example 1) whose flows overlap.
