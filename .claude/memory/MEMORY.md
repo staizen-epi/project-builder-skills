@@ -1,0 +1,1 @@
+- [Sync skills via git diff](sync-skills-via-git-diff.md) — use git to find changed skills when syncing to ~/.claude; ideally every commit equals a sync
