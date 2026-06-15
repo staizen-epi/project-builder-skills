@@ -26,18 +26,18 @@ A chained set of five Claude Code skills that take a web app from a rough idea t
 └─────────────────────┘   reads POC-NOTES.md as hints
    │
    ▼
- ┌── BUILD FEATURES (loop, one feature at a time) ───────────────┐
- │                                                               │
- │  ┌──────────────────┐  writes  specs/features/*.md  ← how a   │
- │  │   feature-spec   │ ───────▶ (deep, per-feature)    feature │
- │  └──────────────────┘                                 behaves │
- │           │                                                   │
- │           ▼                                                   │
- │  ┌──────────────────┐  writes  code + tests         ← builds  │
+ ┌── BUILD FEATURES (loop, one feature at a time) ────────────────┐
+ │                                                                │
+ │  ┌──────────────────┐  writes  specs/features/*.md  ← how a    │
+ │  │   feature-spec   │ ───────▶ (deep, per-feature)    feature  │
+ │  └──────────────────┘                                 behaves  │
+ │           │                                                    │
+ │           ▼                                                    │
+ │  ┌───────────────────┐  writes  code + tests         ← builds  │
  │  │ feature-developer │ ──────▶ (+ specs/REUSE.md)      to spec │
- │  └──────────────────┘  reuse-first, within ARCHITECTURE       │
- │                                                               │
- └───────────────────────────────────────────────────────────────┘
+ │  └───────────────────┘  reuse-first, within ARCHITECTURE       │
+ │                                                                │
+ └────────────────────────────────────────────────────────────────┘
 ```
 
 ## The six skills
