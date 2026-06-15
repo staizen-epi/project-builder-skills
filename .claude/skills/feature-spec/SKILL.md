@@ -71,7 +71,7 @@ Assume sensible defaults for lower-impact detail (exact copy, pixel-level layout
 1. Create `specs/features/` if it doesn't exist. Name the file in kebab-case after the feature (e.g. `specs/features/jira-integration.md`).
 2. Write the spec using the template below.
 3. **Update the PRD's §7 Feature specs index**: add the entry linking the feature file to the requirement IDs it expands. This keeps parent↔child traceability intact.
-4. Present it to the user and revise before it's relied on for build.
+4. Present it to the user and revise before it's relied on for build. Once approved, the natural next step is the `feature-developer` skill, which implements this feature from this spec.
 
 ---
 
@@ -136,6 +136,7 @@ This skill owns one feature's requirements in depth — not the product, not the
 - On any requirement change, update the section **and** add a Changelog entry, and confirm the PRD §7 index link is still accurate.
 - If the build has drifted from the spec, surface it and reconcile.
 - If a change to this feature implies a change to the product itself, update the PRD via the `product-requirements` skill — don't let a child spec quietly redefine the parent.
+- When the `feature-developer` skill routes a gap back here (a behaviour the implementation needed but the spec didn't cover), resolve it in the spec — update the requirement, add a Changelog entry, keep the PRD §7 link accurate — then hand back. The spec leads the code; never let the implementation define behaviour the spec is silent on.
 
 ## Examples
 

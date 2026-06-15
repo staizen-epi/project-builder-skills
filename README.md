@@ -34,13 +34,13 @@ A chained set of five Claude Code skills that take a web app from a rough idea t
  │           │                                                   │
  │           ▼                                                   │
  │  ┌──────────────────┐  writes  code + tests         ← builds  │
- │  │ feature-developer │ ──────▶ (the feature)          to spec │
- │  └──────────────────┘  (a future skill)                       │
+ │  │ feature-developer │ ──────▶ (+ specs/REUSE.md)      to spec │
+ │  └──────────────────┘  reuse-first, within ARCHITECTURE       │
  │                                                               │
  └───────────────────────────────────────────────────────────────┘
 ```
 
-## The five skills
+## The six skills
 
 | Skill | Stage | Reads | Writes |
 |---|---|---|---|
@@ -49,8 +49,9 @@ A chained set of five Claude Code skills that take a web app from a rough idea t
 | `poc-developer` | Spike a quick glimpse *(optional)* | `specs/ARCHITECTURE.md` | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
 | `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` | your codebase |
 | `feature-spec` | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
+| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` | code + tests + `specs/REUSE.md` |
 
-They run in that order: **PRD → architecture → (optional PoC) → scaffold**, then a per-feature loop. The PoC is an optional, disposable spike — a clickable mock-data prototype to see what the app could feel like before committing — and it leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. `feature-spec` is used repeatedly during the build — once for each complex feature, paired with a `feature-developer` skill (planned) that implements the feature from its spec. Everything durable they produce lives together under one `specs/` folder.
+They run in that order: **PRD → architecture → (optional PoC) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype to see what the app could feel like before committing — and it leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, and staying within the architecture's rules. Everything durable they produce lives together under one `specs/` folder.
 
 ## Installation
 
@@ -62,7 +63,8 @@ Each skill is a folder containing a `SKILL.md`. Drop them into one of Claude Cod
 ├── web-app-architect/SKILL.md
 ├── poc-developer/SKILL.md
 ├── web-app-scaffolder/SKILL.md
-└── feature-spec/SKILL.md
+├── feature-spec/SKILL.md
+└── feature-developer/SKILL.md
 ```
 
 - **Project** (`.claude/skills/` in your repo) — travels with the codebase; good when you want the team to share them.
@@ -128,16 +130,21 @@ Run this once the architecture is approved. It reads `specs/ARCHITECTURE.md` (an
 
 > It stops once the foundation boots, the CI gate is green, and the Phase-0 checks pass — then hands back to you to build features.
 
-### 4. Build features, one at a time → `specs/features/<feature>.md` *(the loop)*
+### 4. Build features, one at a time → spec then code *(the loop)*
 
-With the foundation standing, you build features one by one. For each meaty feature, write its spec first — all its flows, states, rules, and edge cases — then implement it against that spec. Simple features stay as rows in the PRD; only complex ones earn their own spec. This is the repeating loop you'll spend most of the build in: **spec a feature → build it → repeat**.
+With the foundation standing, you build features one by one, as a pair of steps per feature: **spec it, then build it.** Simple features stay as rows in the PRD; only complex ones earn their own spec. This is the repeating loop you'll spend most of the build in: **spec a feature → build it → repeat.**
 
-**Example prompts:**
+**Spec it** — `feature-spec` writes `specs/features/<feature>.md`:
 - "Spec out the invoice-reminder feature in detail — all the states and edge cases."
 - "Flesh out the Goodreads sync module: what happens on conflicts, failures, first run?"
-- "Detailed requirements for the OKR check-in flow."
 
-> `feature-spec` reads both the PRD and the architecture, traces back to the PRD requirement it expands (e.g. FR-03 → FR-03.1, FR-03.2…), and adds itself to the PRD's feature index. A companion `feature-developer` skill — which implements a feature from its spec — is planned to complete this loop.
+> It reads both the PRD and the architecture, traces back to the PRD requirement it expands (e.g. FR-03 → FR-03.1, FR-03.2…), and adds itself to the PRD's feature index.
+
+**Build it** — `feature-developer` implements that spec as a tested vertical slice:
+- "Build the invoice-reminder feature from its spec."
+- "Implement the Goodreads sync module."
+
+> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. If the spec is missing a behaviour it needs, it routes back to `feature-spec` rather than improvising.
 
 ---
 
@@ -158,9 +165,12 @@ A short walkthrough of one project moving through the stages:
    **→** It reads the architecture (and the PoC notes as hints) and stands up the repo, stack, auth, the scheduler, the CI gate — then runs the Phase-0 checks until green and stops. The `/poc/` code is ignored; only the notes carry forward.
 
 5. **You:** "Spec out the reminder feature — all the states and timing rules."
-   **→** `specs/features/payment-reminders.md`, expanding the PRD's reminder requirement into flows, schedule rules, and failure behaviour; the PRD's feature index links to it. From here you build the feature against its spec — then loop back to spec the next one.
+   **→** `specs/features/payment-reminders.md`, expanding the PRD's reminder requirement into flows, schedule rules, and failure behaviour; the PRD's feature index links to it.
 
-From there you stay in the build loop on a proven foundation, writing a new `feature-spec` whenever a feature is complex enough to warrant one.
+6. **You:** "Now build the reminder feature."
+   **→** `feature-developer` reads that spec (what) and the architecture (how), checks `specs/REUSE.md` and reuses the `ReminderTimeline` the PoC notes seeded, builds the slice — scheduler hook-up, all the states, tests — within the architecture's gates, proves it against the spec's acceptance criteria, and registers the new reusable bits it created. Then you loop back to spec the next feature.
+
+From there you stay in the build loop on a proven foundation: spec a feature, build it, repeat — the reuse registry making each pass a little faster than the last.
 
 ## What you end up with
 
@@ -171,9 +181,10 @@ your-project/
 │   ├── features/
 │   │   └── payment-reminders.md     # one feature, in depth
 │   ├── ARCHITECTURE.md              # the build: how
-│   └── POC-NOTES.md                 # hints from the spike (if a PoC was run)
+│   ├── POC-NOTES.md                 # hints from the spike (if a PoC was run)
+│   └── REUSE.md                     # registry of reusable code (grows as you build)
 ├── poc/ … (throwaway mock-data spike — deletable)
-└── src/ … (scaffolded foundation)
+└── src/ … (scaffolded foundation + features, built to spec)
 ```
 
 ## Maintaining the specs
@@ -183,6 +194,7 @@ The skills don't just write once — each switches to a **maintain mode** when i
 - "Add a requirement to the PRD: let users export invoices to CSV." → updates `specs/PRD.md` and its changelog.
 - "We're adding a paid SMS API — update the architecture." → revisits the affected gates in `specs/ARCHITECTURE.md`.
 - "The reminder timing changed to 3 and 7 days before due." → updates the feature spec and keeps the PRD index link accurate.
+- "Change how reminders are sent." → the spec changes first (behaviour), then `feature-developer` updates the code to match — never the other way round.
 
 Keep the specs current and they stay the source of truth the whole build derives from.
 

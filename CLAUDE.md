@@ -6,7 +6,7 @@ Context for continuing this project in Claude Code. This repo is a **suite of Cl
 
 ## What's here
 
-Five skills, each a folder with a `SKILL.md`. They chain by reading/writing shared files:
+Six skills, each a folder with a `SKILL.md`. They chain by reading/writing shared files:
 
 | Skill | Stage | Reads | Writes |
 |---|---|---|---|
@@ -15,22 +15,24 @@ Five skills, each a folder with a `SKILL.md`. They chain by reading/writing shar
 | `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
 | `poc-developer` | Spike a throwaway glimpse | `specs/ARCHITECTURE.md` (soft) | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
 | `web-app-scaffolder` | Stand up Phase 0 | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` (hints) | the codebase |
+| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` | code + tests + `specs/REUSE.md` |
 
-Pipeline: **PRD → feature specs → architecture → (optional PoC) → scaffold → build**. The PoC is an optional, disposable step between architecture and scaffold: it shows what the app could feel like on mock data, and leaves `specs/POC-NOTES.md` as hints so the scaffolder starts closer to reality. The `/poc/` code itself is throwaway — the scaffolder reads only the notes, never the spike code. All durable artifacts live under one `specs/` folder in the target project.
+Pipeline: **PRD → feature specs → architecture → (optional PoC) → scaffold → build loop**. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details behaviour (and keeps the PRD §7 index pointing at it), the developer implements that behaviour as a vertical slice within the architecture. The PoC is an optional, disposable step between architecture and scaffold: it shows what the app could feel like on mock data, and leaves `specs/POC-NOTES.md` as hints so the scaffolder starts closer to reality. The `/poc/` code itself is throwaway — the scaffolder reads only the notes, never the spike code. All durable artifacts live under one `specs/` folder in the target project.
 
 ```
 specs/
 ├── PRD.md                  # what & why (highest level)
 ├── features/<feature>.md   # how each complex feature behaves (children of the PRD)
 ├── ARCHITECTURE.md         # how it's built
-└── POC-NOTES.md            # hints from a throwaway spike, for the scaffolder (optional)
+├── POC-NOTES.md            # hints from a throwaway spike, for the scaffolder (optional)
+└── REUSE.md                # registry of reusable code, maintained by feature-developer
 /poc/                       # disposable mock-data prototype (not under specs/; deletable)
 ```
 
 ## Design principles (the spine — apply to every skill, existing and new)
 
 1. **Gating, not templates.** A skill includes only what the app needs. Patterns (multi-tenancy, queues, caching, even a feature's own file) are switched on by explicit conditions and omitted otherwise. Cheaper to add later than to rip out. When unsure, default to the simpler/off option.
-2. **One concept, one owner; clean seams.** Product scope → PRD. Feature behaviour → feature specs. Technical design → architecture. Disposable proof-of-concept → the PoC (`/poc/` code + `POC-NOTES.md` hints). Implementation → (future) developer skill. No skill redoes another's job; they **link and trace**, never duplicate. If work surfaces a decision that belongs upstream, route it back to the owning skill rather than diverging silently.
+2. **One concept, one owner; clean seams.** Product scope → PRD. Feature behaviour → feature specs. Technical design → architecture. Disposable proof-of-concept → the PoC (`/poc/` code + `POC-NOTES.md` hints). Implementation + reuse registry → `feature-developer` (code/tests + `REUSE.md`). No skill redoes another's job; they **link and trace**, never duplicate. If work surfaces a decision that belongs upstream, route it back to the owning skill rather than diverging silently — the developer routes behaviour gaps to `feature-spec` and design gaps to `web-app-architect` instead of improvising.
 3. **Ask only what matters, then assume.** Each bootstrap uses an **impact-tiered** gather: a few high-impact questions asked only if undetermined (hard "ask before generating" threshold), everything else defaulted with the assumption recorded. No long forms.
 4. **Read upstream first (Step 0).** A skill reads the previous stage's artifact before asking anything, so it never re-asks what's already settled (e.g. the architect derives project name, auth, tenancy, integrations from the PRD).
 5. **Prove it.** "Done" means observable, not "files exist." Outputs carry acceptance criteria / checkable conditions; the scaffolder must boot, pass the CI gate, and meet the architecture's Phase-0 criteria.
@@ -54,19 +56,21 @@ specs/
 
 ## Roadmap — planned skills
 
-These extend the pipeline past scaffold into implementation, quality, acceptance, and release. Build each on the same spine (read the upstream artifact, gate, prove it, two modes, clean seams). Rough suggested order: developer → QA → UAT → release.
+These extend the pipeline past the build loop into quality, acceptance, and release. Build each on the same spine (read the upstream artifact, gate, prove it, two modes, clean seams). Rough suggested order: QA → UAT → release.
 
-- **`feature-developer`** — implements one feature from its `specs/features/<feature>.md` + `specs/ARCHITECTURE.md`, as a vertical slice that honours the architecture's invariants/gates and the spec's acceptance criteria. Reads: the feature spec + architecture. Writes: code + tests. Seam: builds to spec; if the spec is wrong, route back to `feature-spec`, don't improvise scope.
+> **`feature-developer` is built** (the `feature-spec` → `feature-developer` build-loop pair is complete). It implements one feature from its `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` as a tested vertical slice that honours the architecture's invariants/gates/principles and proves the spec's acceptance criteria, and it maintains `specs/REUSE.md` — a reuse registry it reads first (build from pre-conceived context) and updates after. Seam: builds to spec; routes behaviour gaps back to `feature-spec` and design gaps to `web-app-architect` rather than improvising.
+
 - **`qa`** — the "QA gauntlet": authors/runs the quality gate against the architecture's invariants and gates (lint, typecheck, tests, security/secret scan, tenant-isolation tests where applicable), restarting the full pass on any failure until green. Reads: architecture + codebase. Writes: a test/quality report; enforces the gate.
 - **`uat`** — turns acceptance criteria from the PRD and feature specs into a user-runnable UAT checklist, and records sign-off before release. Reads: PRD + feature specs (their acceptance criteria). Writes: a UAT checklist + sign-off record. Seam: validates against stated criteria; doesn't invent new ones (gaps go back to the PRD/feature spec).
 - **`release-manager`** — promotes through environments (local → staging → production) only when the QA gate is green; manages versioning, changelog aggregation, and the deploy flow. Reads: architecture's environments/release section + QA status. Writes: release notes / version bumps; performs the promotion. Mind the action-safety boundary — destructive or irreversible deploy steps need explicit human confirmation.
 
 ## Open items / TODOs
 
-- **Plugin packaging:** bundle all **five** skills into one installable Claude Code plugin (add `.claude-plugin/plugin.json`; optionally a marketplace entry) so they install/update as a unit instead of loose folders. Don't forget `poc-developer` when packaging.
+- **Plugin packaging:** bundle all **six** skills into one installable Claude Code plugin (add `.claude-plugin/plugin.json`; optionally a marketplace entry) so they install/update as a unit instead of loose folders. Don't forget `poc-developer` and `feature-developer` when packaging.
 - **Install location:** *(resolved)* the skills live both in the project (`.claude/skills/`, committed) and in personal (`~/.claude/skills/`, reusable everywhere); the two are kept in sync manually (project is the source of truth — copy changed/new skills out to personal). They stack, so both being present is fine. New skill folders need a Claude Code restart to be watched; edits to existing `SKILL.md` are picked up live.
 - **feature-spec presentation:** README orders it before architecture (dependency order). In practice features are often spec'd lazily after scaffolding — consider noting that. Minor.
-- **PoC convention reminder:** the `/poc/` spike is throwaway and lives *outside* `specs/`; only `specs/POC-NOTES.md` is durable. When the (future) `feature-developer`/`qa` skills land, they should also ignore `/poc/` and never treat its shortcuts as real.
+- **PoC convention reminder:** the `/poc/` spike is throwaway and lives *outside* `specs/`; only `specs/POC-NOTES.md` is durable. `feature-developer` already ignores `/poc/`; the future `qa` skill should too, and never treat its shortcuts as real.
+- **REUSE.md convention:** `feature-developer` owns `specs/REUSE.md` (a reuse registry — read first, update after). It's an *index*, not a guarantee: the developer verifies a path before trusting it and reconciles drift in the same change. Stale lines are worse than missing ones because they get trusted. Don't let other skills write to it.
 - Re-run regression dry-runs after any description/gate edits.
 
 ## Continuing in Claude Code
