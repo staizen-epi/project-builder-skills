@@ -192,4 +192,3 @@ Keep the specs current and they stay the source of truth the whole build derives
 - **One concept, one owner.** Product scope lives in the PRD, feature behaviour in feature specs, technical design in the architecture. No skill redoes another's job; they link instead of duplicating.
 - **Ask only what matters, then assume.** Each stage asks a few high-impact questions and defaults the rest, recording assumptions rather than blocking on a long form.
 - **Prove it.** The foundation isn't "done" because files exist — it's done when it boots and passes the architecture's acceptance criteria.
-```
