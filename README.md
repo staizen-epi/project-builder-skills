@@ -1,0 +1,195 @@
+# Spec-Driven Build Skills for Claude Code
+
+A chained set of five Claude Code skills that take a web app from a rough idea to a running, verified foundation — **spec-first**. Each skill writes a file; the next one reads it. You never repeat yourself, and the architecture you get is sized to what the app actually needs instead of a one-size-fits-all template.
+
+```
+  IDEA
+   │
+   ▼
+┌─────────────────────┐   writes    specs/PRD.md            ← what & why
+│ product-requirements│ ──────────▶ (the whole product)
+└─────────────────────┘
+   │
+   ▼
+┌─────────────────────┐   writes    specs/ARCHITECTURE.md   ← how it's built
+│  web-app-architect  │ ──────────▶ (stack, gates, phases)
+└─────────────────────┘
+   │
+   ▼
+┌─────────────────────┐   writes    /poc/ + POC-NOTES.md    ← a quick glimpse
+│    poc-developer    │ ──────────▶ (throwaway, mock data)     (optional)
+└─────────────────────┘   the spike is disposable; the notes
+   │                      become hints for the scaffolder
+   ▼
+┌─────────────────────┐   writes    your codebase           ← Phase-0 foundation, proven
+│  web-app-scaffolder │ ──────────▶ (scaffolded + verified)
+└─────────────────────┘   reads POC-NOTES.md as hints
+   │
+   ▼
+ ┌── BUILD FEATURES (loop, one feature at a time) ───────────────┐
+ │                                                               │
+ │  ┌──────────────────┐  writes  specs/features/*.md  ← how a   │
+ │  │   feature-spec   │ ───────▶ (deep, per-feature)    feature │
+ │  └──────────────────┘                                 behaves │
+ │           │                                                   │
+ │           ▼                                                   │
+ │  ┌──────────────────┐  writes  code + tests         ← builds  │
+ │  │ feature-developer │ ──────▶ (the feature)          to spec │
+ │  └──────────────────┘  (a future skill)                       │
+ │                                                               │
+ └───────────────────────────────────────────────────────────────┘
+```
+
+## The five skills
+
+| Skill | Stage | Reads | Writes |
+|---|---|---|---|
+| `product-requirements` | Define the product | the conversation | `specs/PRD.md` |
+| `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
+| `poc-developer` | Spike a quick glimpse *(optional)* | `specs/ARCHITECTURE.md` | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
+| `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` | your codebase |
+| `feature-spec` | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
+
+They run in that order: **PRD → architecture → (optional PoC) → scaffold**, then a per-feature loop. The PoC is an optional, disposable spike — a clickable mock-data prototype to see what the app could feel like before committing — and it leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. `feature-spec` is used repeatedly during the build — once for each complex feature, paired with a `feature-developer` skill (planned) that implements the feature from its spec. Everything durable they produce lives together under one `specs/` folder.
+
+## Installation
+
+Each skill is a folder containing a `SKILL.md`. Drop them into one of Claude Code's skill locations:
+
+```
+.claude/skills/                 # project-level: committed with the repo, shared with your team
+├── product-requirements/SKILL.md
+├── web-app-architect/SKILL.md
+├── poc-developer/SKILL.md
+├── web-app-scaffolder/SKILL.md
+└── feature-spec/SKILL.md
+```
+
+- **Project** (`.claude/skills/` in your repo) — travels with the codebase; good when you want the team to share them.
+- **Personal** (`~/.claude/skills/`) — available across all your projects; good for general reuse. The two locations stack, so you can use both.
+
+If the `.claude/skills/` directory didn't exist when your session started, restart Claude Code once so it gets watched. Edits to an existing `SKILL.md` are picked up live.
+
+## How it works
+
+You don't invoke these skills manually. Claude Code reads each skill's description and routes to the right one based on what you ask and which spec files already exist. So you just talk naturally:
+
+- Which skill fires is decided by **intent + file state** — e.g. `web-app-architect` activates when you ask about building/structure *and* there's no `specs/ARCHITECTURE.md` yet; once it exists, the same skill switches to maintaining it.
+- Each skill **reads the previous stage's output**, so you don't restate the product when you move to architecture, or restate the architecture when you scaffold.
+- Each stage **pauses for your approval** before the next one runs. Review the `specs/` file, correct it, then continue.
+
+You can also jump in anywhere: if you already have a PRD, start at architecture; if you already have an architecture, start at scaffold.
+
+---
+
+## Using it, stage by stage
+
+### 1. Define the product → `specs/PRD.md`
+
+Start here when you have an idea but no `specs/PRD.md`. The skill asks a short set of high-impact questions (what & who, problem & success, must-haves, non-goals, constraints), then writes the PRD.
+
+**Example prompts:**
+- "I want to build a tool that lets freelancers track invoices and send reminders. Help me write a PRD."
+- "Let's spec out a new product: a reading tracker that syncs my Goodreads shelf."
+- "Define the requirements for an internal dashboard my team will use to track weekly OKRs."
+
+> It will ask a few questions before writing — answer them, or reply "defaults" to let it assume sensible ones and note them.
+
+### 2. Design the build → `specs/ARCHITECTURE.md`
+
+Run this when the PRD is approved. It reads the PRD first — pulling the project name, who logs in, integrations, and constraints — so it only asks what the PRD leaves open, then decides the stack and which architectural patterns the app actually needs (and switches off the ones it doesn't).
+
+**Example prompts:**
+- "The PRD's done — design the architecture."
+- "How should we build this? Set up the ARCHITECTURE.md."
+- "Decide the tech stack and structure for this app."
+
+> Because it reads the PRD, a single-user local tool won't get multi-tenancy bolted on, and a SaaS will get tenant isolation, RBAC, and the rest — automatically.
+
+### 2½. (Optional) Spike a quick glimpse → `/poc/` + `specs/POC-NOTES.md`
+
+Run this when you want to *see* the idea working before committing to the real build. It throws together a clickable, **mock-data** prototype of the one flow that makes the product click — no real auth, no real database, no live APIs — so you get a feel for it fast. The spike lands in a disposable `/poc/` folder; what lasts is `specs/POC-NOTES.md`, a short list of hints (what worked, component shapes, observed data shapes, pitfalls) that the scaffolder reads next.
+
+**Example prompts:**
+- "Before we scaffold, throw together a quick PoC so I can see the reminder flow."
+- "Mock up the UI for the dashboard — just enough to click through."
+- "Spike a prototype of the core flow with fake data."
+
+> It's optional and disposable. The PoC code is throwaway and takes shortcuts on purpose; the scaffolder reads only the *notes*, never the spike code, and the architecture always wins on any conflict. Skip it entirely if you'd rather go straight to the real foundation.
+
+### 3. Stand up the foundation → your codebase
+
+Run this once the architecture is approved. It reads `specs/ARCHITECTURE.md` (and `specs/POC-NOTES.md` if a PoC was spiked, as advisory hints), scaffolds exactly the foundation the doc calls for (repo, stack, auth, the gated pieces, CI gate), and proves it against the architecture's own Phase-0 acceptance criteria. It builds the foundation only — not features.
+
+**Example prompts:**
+- "Scaffold the project and stand up Phase 0."
+- "Bootstrap the repo from the architecture."
+- "Set up the foundation and prove it works."
+
+> It stops once the foundation boots, the CI gate is green, and the Phase-0 checks pass — then hands back to you to build features.
+
+### 4. Build features, one at a time → `specs/features/<feature>.md` *(the loop)*
+
+With the foundation standing, you build features one by one. For each meaty feature, write its spec first — all its flows, states, rules, and edge cases — then implement it against that spec. Simple features stay as rows in the PRD; only complex ones earn their own spec. This is the repeating loop you'll spend most of the build in: **spec a feature → build it → repeat**.
+
+**Example prompts:**
+- "Spec out the invoice-reminder feature in detail — all the states and edge cases."
+- "Flesh out the Goodreads sync module: what happens on conflicts, failures, first run?"
+- "Detailed requirements for the OKR check-in flow."
+
+> `feature-spec` reads both the PRD and the architecture, traces back to the PRD requirement it expands (e.g. FR-03 → FR-03.1, FR-03.2…), and adds itself to the PRD's feature index. A companion `feature-developer` skill — which implements a feature from its spec — is planned to complete this loop.
+
+---
+
+## End-to-end example
+
+A short walkthrough of one project moving through the stages:
+
+1. **You:** "I want to build a tool for freelancers to track invoices and send payment reminders. Write a PRD."
+   **→** A few questions, then `specs/PRD.md` (persona, goals/non-goals, functional requirements, the "sends reminders" + "connects to a payment provider" constraints).
+
+2. **You:** "Now design the architecture."
+   **→** It reads the PRD, sees single-user + a payment integration + scheduled reminders, and writes `specs/ARCHITECTURE.md` with a job/scheduler layer and webhook verification gated **on**, multi-tenancy gated **off**, plus a phased build plan.
+
+3. **You:** "Before we build it for real, spike a quick PoC of the reminder flow." *(optional)*
+   **→** It builds a throwaway `/poc/` with three mock-data screens you can click through, then writes `specs/POC-NOTES.md` — validated patterns, a reusable `ReminderTimeline` component, the data shape the UI needed, and a note that auth/DB are mocked. You get a feel for it without committing to anything.
+
+4. **You:** "Scaffold Phase 0."
+   **→** It reads the architecture (and the PoC notes as hints) and stands up the repo, stack, auth, the scheduler, the CI gate — then runs the Phase-0 checks until green and stops. The `/poc/` code is ignored; only the notes carry forward.
+
+5. **You:** "Spec out the reminder feature — all the states and timing rules."
+   **→** `specs/features/payment-reminders.md`, expanding the PRD's reminder requirement into flows, schedule rules, and failure behaviour; the PRD's feature index links to it. From here you build the feature against its spec — then loop back to spec the next one.
+
+From there you stay in the build loop on a proven foundation, writing a new `feature-spec` whenever a feature is complex enough to warrant one.
+
+## What you end up with
+
+```
+your-project/
+├── specs/
+│   ├── PRD.md                       # the product: what & why
+│   ├── features/
+│   │   └── payment-reminders.md     # one feature, in depth
+│   ├── ARCHITECTURE.md              # the build: how
+│   └── POC-NOTES.md                 # hints from the spike (if a PoC was run)
+├── poc/ … (throwaway mock-data spike — deletable)
+└── src/ … (scaffolded foundation)
+```
+
+## Maintaining the specs
+
+The skills don't just write once — each switches to a **maintain mode** when its file already exists:
+
+- "Add a requirement to the PRD: let users export invoices to CSV." → updates `specs/PRD.md` and its changelog.
+- "We're adding a paid SMS API — update the architecture." → revisits the affected gates in `specs/ARCHITECTURE.md`.
+- "The reminder timing changed to 3 and 7 days before due." → updates the feature spec and keeps the PRD index link accurate.
+
+Keep the specs current and they stay the source of truth the whole build derives from.
+
+## Design principles (why it behaves this way)
+
+- **Gating, not templates.** Each skill includes only what the app needs. Patterns (multi-tenancy, queues, caching, a feature's own file) are switched on by explicit conditions and left off otherwise — it's cheaper to add later than to rip out.
+- **One concept, one owner.** Product scope lives in the PRD, feature behaviour in feature specs, technical design in the architecture. No skill redoes another's job; they link instead of duplicating.
+- **Ask only what matters, then assume.** Each stage asks a few high-impact questions and defaults the rest, recording assumptions rather than blocking on a long form.
+- **Prove it.** The foundation isn't "done" because files exist — it's done when it boots and passes the architecture's acceptance criteria.
+```
