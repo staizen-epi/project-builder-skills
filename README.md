@@ -18,8 +18,10 @@ A chained set of Claude Code skills that take a web app from a rough idea to a r
    ▼
 ┌─────────────────────┐   writes    /poc/ + POC-NOTES.md    ← a quick glimpse
 │    poc-developer    │ ──────────▶ (throwaway, mock data)     (optional)
-└─────────────────────┘   the spike is disposable; the notes
-   │                      become hints for the scaffolder
+└─────────────────────┘   greenfield: hints the scaffolder.
+   │                      brownfield (real app exists): a
+   │                      "quick response" spike of one change,
+   │                      mocking the real seam → feature-spec
    ▼
 ┌─────────────────────┐   writes    specs/DESIGN.md         ← the look & feel
 │     ux-designer     │ ──────────▶ + tokens + style guide     (optional)
@@ -52,13 +54,13 @@ A chained set of Claude Code skills that take a web app from a rough idea to a r
 |---|---|---|---|
 | `product-requirements` | Define the product | the conversation | `specs/PRD.md` |
 | `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
-| `poc-developer` | Spike a quick glimpse *(optional)* | `specs/ARCHITECTURE.md` | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
+| `poc-developer` | Spike a quick glimpse — or a "quick response" spike of one change against an existing app *(optional)* | `specs/ARCHITECTURE.md`; brownfield also reads the real code as context | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
 | `ux-designer` | Design the look & feel *(optional)* | `specs/PRD.md` + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + tokens + style guide |
 | `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` | your codebase |
 | `feature-spec` | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
 | `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` | code + tests + `specs/REUSE.md` |
 
-They run in that order: **PRD → architecture → (optional PoC) → (optional design system) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype to see what the app could feel like before committing — and it leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. The design system is also optional: `ux-designer` establishes the durable visual & interaction language (`specs/DESIGN.md` + token files + a static style-guide preview) that the scaffolder adopts and every feature conforms to. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, staying within the architecture's rules and conforming to the design system if one exists. Everything durable they produce lives together under one `specs/` folder.
+They run in that order: **PRD → architecture → (optional PoC) → (optional design system) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real. The design system is also optional: `ux-designer` establishes the durable visual & interaction language (`specs/DESIGN.md` + token files + a static style-guide preview) that the scaffolder adopts and every feature conforms to. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, staying within the architecture's rules and conforming to the design system if one exists. Everything durable they produce lives together under one `specs/` folder.
 
 ## Installation
 
@@ -118,14 +120,18 @@ Run this when the PRD is approved. It reads the PRD first — pulling the projec
 
 ### 2½. (Optional) Spike a quick glimpse → `/poc/` + `specs/POC-NOTES.md`
 
-Run this when you want to *see* the idea working before committing to the real build. It throws together a clickable, **mock-data** prototype of the one flow that makes the product click — no real auth, no real database, no live APIs — so you get a feel for it fast. The spike lands in a disposable `/poc/` folder; what lasts is `specs/POC-NOTES.md`, a short list of hints (what worked, component shapes, observed data shapes, pitfalls) that the scaffolder reads next.
+Run this when you want to *see* something working before committing to the real build. It throws together a clickable, **mock-data** prototype — no real auth, no real database, no live APIs — so you get a feel for it fast. The spike lands in a disposable `/poc/` folder; what lasts is `specs/POC-NOTES.md`, a short list of hints. It auto-detects which of two modes you're in:
+
+- **Greenfield (no real app yet)** — prototypes the one flow that makes the *whole product* click, and the notes become hints the **scaffolder** reads next.
+- **Brownfield (a real app already exists)** — a **"quick response" spike** of one *targeted change*: it reads your real code as context to learn the seam the change plugs into, builds just that change against a *mocked* version of that seam (it never copies, imports, or edits your real code), and the notes name the real seam and hand off to **`feature-spec` → `feature-developer`** to build it for real.
 
 **Example prompts:**
-- "Before we scaffold, throw together a quick PoC so I can see the reminder flow."
-- "Mock up the UI for the dashboard — just enough to click through."
-- "Spike a prototype of the core flow with fake data."
+- "Before we scaffold, throw together a quick PoC so I can see the reminder flow." *(greenfield)*
+- "Mock up the UI for the dashboard — just enough to click through." *(greenfield)*
+- "Spike what a bulk-reminder action would feel like in the current app." *(brownfield)*
+- "Quick-response PoC of inline editing on the invoice list before we commit." *(brownfield)*
 
-> It's optional and disposable. The PoC code is throwaway and takes shortcuts on purpose; the scaffolder reads only the *notes*, never the spike code, and the architecture always wins on any conflict. Skip it entirely if you'd rather go straight to the real foundation.
+> It's optional and disposable. The PoC code is throwaway and takes shortcuts on purpose; the next stage reads only the *notes*, never the spike code, and the architecture always wins on any conflict. In brownfield it reads your real code only to learn the seam — it never copies or changes it. Skip it entirely if you'd rather go straight to building.
 
 ### 2¾. (Optional) Design the look & feel → `specs/DESIGN.md` + tokens + style guide
 

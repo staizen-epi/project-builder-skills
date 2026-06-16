@@ -1,14 +1,12 @@
 ---
 name: scan-local-claude-skills
-description: Always scan for local .claude skills on every prompt in the inspo-wallpaper project
-metadata: 
-  node_type: memory
+description: On every prompt, check the project-local .claude/skills first and prefer a matching skill over an ad-hoc approach
+metadata:
   type: feedback
-  originSessionId: bb8d6ee6-dfd7-44fe-a9d7-44a785bc368d
 ---
 
-On every prompt in this project directory, scan for local `.claude` skills (e.g. `.claude/skills/`) and consider whether any apply before responding.
+On every prompt in this project, scan the project-local `.claude/skills/` first and consider whether any skill applies before responding. Prefer invoking a matching local skill over an ad-hoc approach.
 
-**Why:** The user wants project-local skills to be reliably discovered and used rather than overlooked.
+**Why:** This project was set up from the spec-driven build-skills package (`package/skills/` copied into `.claude/skills/`). Those skills are the intended way to take work from idea → spec → architecture → scaffold → feature build, and they're easy to overlook if you don't look for them.
 
-**How to apply:** At the start of handling each prompt in this project, check the project's `.claude` directory for available skills and prefer invoking a matching one over an ad-hoc approach.
+**How to apply:** At the start of handling each prompt, check `.claude/skills/` for an available skill that matches the request (e.g. writing a PRD, designing architecture, scaffolding, building a feature) and invoke it instead of improvising.
