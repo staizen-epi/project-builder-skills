@@ -6,7 +6,7 @@ Context for continuing this project in Claude Code. This repo is a **suite of Cl
 
 ## What's here
 
-Six skills, each a folder with a `SKILL.md`. They chain by reading/writing shared files:
+Seven skills, each a folder with a `SKILL.md`. They chain by reading/writing shared files:
 
 | Skill | Stage | Reads | Writes |
 |---|---|---|---|
@@ -14,10 +14,11 @@ Six skills, each a folder with a `SKILL.md`. They chain by reading/writing share
 | `feature-spec` | Detail one feature | `specs/PRD.md` | `specs/features/<feature>.md` |
 | `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
 | `poc-developer` | Spike a throwaway glimpse | `specs/ARCHITECTURE.md` (soft) | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
-| `web-app-scaffolder` | Stand up Phase 0 | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` (hints) | the codebase |
-| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` | code + tests + `specs/REUSE.md` |
+| `ux-designer` | Design the look & feel | `specs/PRD.md` (parent) + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + token files + static style guide |
+| `web-app-scaffolder` | Stand up Phase 0 | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` (hints) + `specs/DESIGN.md` (adopted) | the codebase |
+| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` | code + tests + `specs/REUSE.md` |
 
-Pipeline: **PRD → feature specs → architecture → (optional PoC) → scaffold → build loop**. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details behaviour (and keeps the PRD §7 index pointing at it), the developer implements that behaviour as a vertical slice within the architecture. The PoC is an optional, disposable step between architecture and scaffold: it shows what the app could feel like on mock data, and leaves `specs/POC-NOTES.md` as hints so the scaffolder starts closer to reality. The `/poc/` code itself is throwaway — the scaffolder reads only the notes, never the spike code. All durable artifacts live under one `specs/` folder in the target project.
+Pipeline: **PRD → feature specs → architecture → (optional PoC) → (optional design system) → scaffold → build loop**. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details behaviour (and keeps the PRD §7 index pointing at it), the developer implements that behaviour as a vertical slice within the architecture and conforming to the design system. The PoC is an optional, disposable step between architecture and scaffold: it shows what the app could feel like on mock data, and leaves `specs/POC-NOTES.md` as hints so the scaffolder starts closer to reality. The `/poc/` code itself is throwaway — the scaffolder reads only the notes, never the spike code. The design system (`ux-designer`) is also optional and gated: it establishes the durable visual/interaction language (`specs/DESIGN.md` + token files + a static style-guide preview) that the scaffolder *adopts* (a decision, not a hint) and every feature conforms to; missing components/tokens route back to it like behaviour gaps route to `feature-spec`. All durable artifacts live under one `specs/` folder in the target project.
 
 ```
 specs/
@@ -25,6 +26,7 @@ specs/
 ├── features/<feature>.md   # how each complex feature behaves (children of the PRD)
 ├── ARCHITECTURE.md         # how it's built
 ├── POC-NOTES.md            # hints from a throwaway spike, for the scaffolder (optional)
+├── DESIGN.md               # the design system (tokens, components, a11y), maintained by ux-designer (optional)
 └── REUSE.md                # registry of reusable code, maintained by feature-developer
 /poc/                       # disposable mock-data prototype (not under specs/; deletable)
 ```
@@ -32,7 +34,7 @@ specs/
 ## Design principles (the spine — apply to every skill, existing and new)
 
 1. **Gating, not templates.** A skill includes only what the app needs. Patterns (multi-tenancy, queues, caching, even a feature's own file) are switched on by explicit conditions and omitted otherwise. Cheaper to add later than to rip out. When unsure, default to the simpler/off option.
-2. **One concept, one owner; clean seams.** Product scope → PRD. Feature behaviour → feature specs. Technical design → architecture. Disposable proof-of-concept → the PoC (`/poc/` code + `POC-NOTES.md` hints). Implementation + reuse registry → `feature-developer` (code/tests + `REUSE.md`). No skill redoes another's job; they **link and trace**, never duplicate. If work surfaces a decision that belongs upstream, route it back to the owning skill rather than diverging silently — the developer routes behaviour gaps to `feature-spec` and design gaps to `web-app-architect` instead of improvising.
+2. **One concept, one owner; clean seams.** Product scope → PRD. Feature behaviour → feature specs. Technical design → architecture. Visual/interaction design (the design system) → `ux-designer` (`DESIGN.md` + tokens + style guide). Disposable proof-of-concept → the PoC (`/poc/` code + `POC-NOTES.md` hints). Implementation + reuse registry → `feature-developer` (code/tests + `REUSE.md`). No skill redoes another's job; they **link and trace**, never duplicate. If work surfaces a decision that belongs upstream, route it back to the owning skill rather than diverging silently — the developer routes behaviour gaps to `feature-spec`, technical-design gaps to `web-app-architect`, and visual-design gaps (a missing component/token) to `ux-designer` instead of improvising. Note the deliberately fine seam between the PoC and `ux-designer`: the PoC previews *what using the product feels like* (clickable, mock data, throwaway); `ux-designer` defines *the visual language* and previews it as a *static* style guide (durable). They're complementary, not duplicative.
 3. **Ask only what matters, then assume.** Each bootstrap uses an **impact-tiered** gather: a few high-impact questions asked only if undetermined (hard "ask before generating" threshold), everything else defaulted with the assumption recorded. No long forms.
 4. **Read upstream first (Step 0).** A skill reads the previous stage's artifact before asking anything, so it never re-asks what's already settled (e.g. the architect derives project name, auth, tenancy, integrations from the PRD).
 5. **Prove it.** "Done" means observable, not "files exist." Outputs carry acceptance criteria / checkable conditions; the scaffolder must boot, pass the CI gate, and meet the architecture's Phase-0 criteria.
@@ -58,15 +60,17 @@ specs/
 
 These extend the pipeline past the build loop into quality, acceptance, and release. Build each on the same spine (read the upstream artifact, gate, prove it, two modes, clean seams). Rough suggested order: QA → UAT → release.
 
-> **`feature-developer` is built** (the `feature-spec` → `feature-developer` build-loop pair is complete). It implements one feature from its `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` as a tested vertical slice that honours the architecture's invariants/gates/principles and proves the spec's acceptance criteria, and it maintains `specs/REUSE.md` — a reuse registry it reads first (build from pre-conceived context) and updates after. Seam: builds to spec; routes behaviour gaps back to `feature-spec` and design gaps to `web-app-architect` rather than improvising.
+> **`feature-developer` is built** (the `feature-spec` → `feature-developer` build-loop pair is complete). It implements one feature from its `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` as a tested vertical slice that honours the architecture's invariants/gates/principles and proves the spec's acceptance criteria, and it maintains `specs/REUSE.md` — a reuse registry it reads first (build from pre-conceived context) and updates after. Seam: builds to spec; routes behaviour gaps back to `feature-spec`, technical-design gaps to `web-app-architect`, and visual-design gaps to `ux-designer` rather than improvising.
+>
+> **`ux-designer` is built** (the optional design-system stage, sitting after the PoC and before the scaffolder). It requires `specs/PRD.md` as its parent, reads `POC-NOTES.md` (validated interaction patterns) and `ARCHITECTURE.md` (the front-end stack) if present, and writes `specs/DESIGN.md` + token files + a single *static* style-guide preview — the durable visual/interaction language. It's gated (an admin panel / dev tool / off-the-shelf-kit app gets none) and clean-seamed: the scaffolder adopts the tokens + base components (a decision, not a hint), every `feature-developer` slice conforms, and missing components/tokens route back here. Distinct from the PoC (product-feel spike, clickable, throwaway) vs. this (visual language, static preview, durable).
 
-- **`qa`** — the "QA gauntlet": authors/runs the quality gate against the architecture's invariants and gates (lint, typecheck, tests, security/secret scan, tenant-isolation tests where applicable), restarting the full pass on any failure until green. Reads: architecture + codebase. Writes: a test/quality report; enforces the gate.
+- **`qa`** — the "QA gauntlet": authors/runs the quality gate against the architecture's invariants and gates (lint, typecheck, tests, security/secret scan, tenant-isolation tests where applicable), restarting the full pass on any failure until green. Reads: architecture + codebase (and `DESIGN.md`'s accessibility baseline, where present, as another checkable gate). Writes: a test/quality report; enforces the gate.
 - **`uat`** — turns acceptance criteria from the PRD and feature specs into a user-runnable UAT checklist, and records sign-off before release. Reads: PRD + feature specs (their acceptance criteria). Writes: a UAT checklist + sign-off record. Seam: validates against stated criteria; doesn't invent new ones (gaps go back to the PRD/feature spec).
 - **`release-manager`** — promotes through environments (local → staging → production) only when the QA gate is green; manages versioning, changelog aggregation, and the deploy flow. Reads: architecture's environments/release section + QA status. Writes: release notes / version bumps; performs the promotion. Mind the action-safety boundary — destructive or irreversible deploy steps need explicit human confirmation.
 
 ## Open items / TODOs
 
-- **Plugin packaging:** bundle all **six** skills into one installable Claude Code plugin (add `.claude-plugin/plugin.json`; optionally a marketplace entry) so they install/update as a unit instead of loose folders. Don't forget `poc-developer` and `feature-developer` when packaging.
+- **Plugin packaging:** bundle all **seven** skills into one installable Claude Code plugin (add `.claude-plugin/plugin.json`; optionally a marketplace entry) so they install/update as a unit instead of loose folders. Don't forget `poc-developer`, `ux-designer`, and `feature-developer` when packaging.
 - **Install location:** *(resolved)* the skills live both in the project (`.claude/skills/`, committed) and in personal (`~/.claude/skills/`, reusable everywhere); the two are kept in sync manually (project is the source of truth — copy changed/new skills out to personal). They stack, so both being present is fine. New skill folders need a Claude Code restart to be watched; edits to existing `SKILL.md` are picked up live.
 - **feature-spec presentation:** README orders it before architecture (dependency order). In practice features are often spec'd lazily after scaffolding — consider noting that. Minor.
 - **PoC convention reminder:** the `/poc/` spike is throwaway and lives *outside* `specs/`; only `specs/POC-NOTES.md` is durable. `feature-developer` already ignores `/poc/`; the future `qa` skill should too, and never treat its shortcuts as real.

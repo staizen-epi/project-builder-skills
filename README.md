@@ -1,6 +1,6 @@
 # Spec-Driven Build Skills for Claude Code
 
-A chained set of five Claude Code skills that take a web app from a rough idea to a running, verified foundation — **spec-first**. Each skill writes a file; the next one reads it. You never repeat yourself, and the architecture you get is sized to what the app actually needs instead of a one-size-fits-all template.
+A chained set of Claude Code skills that take a web app from a rough idea to a running, verified foundation — **spec-first**. Each skill writes a file; the next one reads it. You never repeat yourself, and the architecture you get is sized to what the app actually needs instead of a one-size-fits-all template.
 
 ```
   IDEA
@@ -21,9 +21,15 @@ A chained set of five Claude Code skills that take a web app from a rough idea t
 └─────────────────────┘   the spike is disposable; the notes
    │                      become hints for the scaffolder
    ▼
+┌─────────────────────┐   writes    specs/DESIGN.md         ← the look & feel
+│     ux-designer     │ ──────────▶ + tokens + style guide     (optional)
+└─────────────────────┘   the design system the foundation
+   │                      adopts and every feature conforms to
+   ▼
 ┌─────────────────────┐   writes    your codebase           ← Phase-0 foundation, proven
 │  web-app-scaffolder │ ──────────▶ (scaffolded + verified)
-└─────────────────────┘   reads POC-NOTES.md as hints
+└─────────────────────┘   reads POC-NOTES.md as hints,
+   │                      adopts DESIGN.md tokens + components
    │
    ▼
  ┌── BUILD FEATURES (loop, one feature at a time) ────────────────┐
@@ -40,18 +46,19 @@ A chained set of five Claude Code skills that take a web app from a rough idea t
  └────────────────────────────────────────────────────────────────┘
 ```
 
-## The six skills
+## The seven skills
 
 | Skill | Stage | Reads | Writes |
 |---|---|---|---|
 | `product-requirements` | Define the product | the conversation | `specs/PRD.md` |
 | `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
 | `poc-developer` | Spike a quick glimpse *(optional)* | `specs/ARCHITECTURE.md` | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
-| `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` | your codebase |
+| `ux-designer` | Design the look & feel *(optional)* | `specs/PRD.md` + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + tokens + style guide |
+| `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` | your codebase |
 | `feature-spec` | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
-| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` | code + tests + `specs/REUSE.md` |
+| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` | code + tests + `specs/REUSE.md` |
 
-They run in that order: **PRD → architecture → (optional PoC) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype to see what the app could feel like before committing — and it leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, and staying within the architecture's rules. Everything durable they produce lives together under one `specs/` folder.
+They run in that order: **PRD → architecture → (optional PoC) → (optional design system) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype to see what the app could feel like before committing — and it leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. The design system is also optional: `ux-designer` establishes the durable visual & interaction language (`specs/DESIGN.md` + token files + a static style-guide preview) that the scaffolder adopts and every feature conforms to. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, staying within the architecture's rules and conforming to the design system if one exists. Everything durable they produce lives together under one `specs/` folder.
 
 ## Installation
 
@@ -62,6 +69,7 @@ Each skill is a folder containing a `SKILL.md`. Drop them into one of Claude Cod
 ├── product-requirements/SKILL.md
 ├── web-app-architect/SKILL.md
 ├── poc-developer/SKILL.md
+├── ux-designer/SKILL.md
 ├── web-app-scaffolder/SKILL.md
 ├── feature-spec/SKILL.md
 └── feature-developer/SKILL.md
@@ -119,9 +127,20 @@ Run this when you want to *see* the idea working before committing to the real b
 
 > It's optional and disposable. The PoC code is throwaway and takes shortcuts on purpose; the scaffolder reads only the *notes*, never the spike code, and the architecture always wins on any conflict. Skip it entirely if you'd rather go straight to the real foundation.
 
+### 2¾. (Optional) Design the look & feel → `specs/DESIGN.md` + tokens + style guide
+
+Run this when the product has a real user-facing surface and you want one coherent visual language instead of each feature re-deciding colour, spacing, and component shape on its own. It reads the PRD (persona and flows), the PoC notes if present (the interaction patterns that were validated), and the architecture (the front-end stack), then establishes a **design system**: semantic design tokens (colour/type/spacing/radius/motion), a base component inventory with their states, layout/navigation patterns, and an accessibility baseline. It writes `specs/DESIGN.md` (the durable contract) plus the **token files** and one **static style-guide preview page** so you can *see* the system, not just read it.
+
+**Example prompts:**
+- "Set up the design system before we scaffold."
+- "Define the look and feel — colours, typography, spacing, components."
+- "Make it look polished and consistent — establish the visual language."
+
+> It's optional and gated: an internal admin panel, a dev tool, or an app that adopts an off-the-shelf component kit as-is doesn't need one, and the skill will say so rather than manufacturing noise. The preview is a *static* style guide (a gallery rendered once) — distinct from the PoC, which previews what *using the product* feels like. The architecture wins on *how* components are built; the design system governs *how they look*.
+
 ### 3. Stand up the foundation → your codebase
 
-Run this once the architecture is approved. It reads `specs/ARCHITECTURE.md` (and `specs/POC-NOTES.md` if a PoC was spiked, as advisory hints), scaffolds exactly the foundation the doc calls for (repo, stack, auth, the gated pieces, CI gate), and proves it against the architecture's own Phase-0 acceptance criteria. It builds the foundation only — not features.
+Run this once the architecture is approved. It reads `specs/ARCHITECTURE.md` (plus `specs/POC-NOTES.md` if a PoC was spiked, as advisory hints, and `specs/DESIGN.md` if a design system was established, adopting its tokens and base components), scaffolds exactly the foundation the doc calls for (repo, stack, auth, the gated pieces, CI gate), and proves it against the architecture's own Phase-0 acceptance criteria. It builds the foundation only — not features.
 
 **Example prompts:**
 - "Scaffold the project and stand up Phase 0."
@@ -144,7 +163,7 @@ With the foundation standing, you build features one by one, as a pair of steps 
 - "Build the invoice-reminder feature from its spec."
 - "Implement the Goodreads sync module."
 
-> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. If the spec is missing a behaviour it needs, it routes back to `feature-spec` rather than improvising.
+> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), conforms to the design system if `specs/DESIGN.md` exists (its tokens, components, and a11y baseline), and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. If the spec is missing a behaviour it needs, it routes back to `feature-spec`; if it needs a component or token the design system doesn't define, it routes back to `ux-designer` — rather than improvising either.
 
 ---
 
@@ -161,14 +180,17 @@ A short walkthrough of one project moving through the stages:
 3. **You:** "Before we build it for real, spike a quick PoC of the reminder flow." *(optional)*
    **→** It builds a throwaway `/poc/` with three mock-data screens you can click through, then writes `specs/POC-NOTES.md` — validated patterns, a reusable `ReminderTimeline` component, the data shape the UI needed, and a note that auth/DB are mocked. You get a feel for it without committing to anything.
 
-4. **You:** "Scaffold Phase 0."
-   **→** It reads the architecture (and the PoC notes as hints) and stands up the repo, stack, auth, the scheduler, the CI gate — then runs the Phase-0 checks until green and stops. The `/poc/` code is ignored; only the notes carry forward.
+4. **You:** "Set up the design system before we scaffold." *(optional)*
+   **→** It reads the PRD (persona, flows) and the PoC notes (the inline timeline that landed), and writes `specs/DESIGN.md` plus `tokens.ts` and a static style-guide page: semantic colour/type/spacing tokens, a component inventory with states, a sidebar shell, and a WCAG AA baseline. You open the style guide and *see* the system before any feature is built.
 
-5. **You:** "Spec out the reminder feature — all the states and timing rules."
+5. **You:** "Scaffold Phase 0."
+   **→** It reads the architecture (and the PoC notes as hints, and adopts the design tokens + base components) and stands up the repo, stack, auth, the scheduler, the CI gate — then runs the Phase-0 checks until green and stops. The `/poc/` code is ignored; only the notes carry forward.
+
+6. **You:** "Spec out the reminder feature — all the states and timing rules."
    **→** `specs/features/payment-reminders.md`, expanding the PRD's reminder requirement into flows, schedule rules, and failure behaviour; the PRD's feature index links to it.
 
-6. **You:** "Now build the reminder feature."
-   **→** `feature-developer` reads that spec (what) and the architecture (how), checks `specs/REUSE.md` and reuses the `ReminderTimeline` the PoC notes seeded, builds the slice — scheduler hook-up, all the states, tests — within the architecture's gates, proves it against the spec's acceptance criteria, and registers the new reusable bits it created. Then you loop back to spec the next feature.
+7. **You:** "Now build the reminder feature."
+   **→** `feature-developer` reads that spec (what) and the architecture (how), checks `specs/REUSE.md` and reuses the `ReminderTimeline` the PoC notes seeded, builds the slice with the design system's tokens and components — scheduler hook-up, all the states, tests — within the architecture's gates, proves it against the spec's acceptance criteria, and registers the new reusable bits it created. Then you loop back to spec the next feature.
 
 From there you stay in the build loop on a proven foundation: spec a feature, build it, repeat — the reuse registry making each pass a little faster than the last.
 
@@ -182,6 +204,7 @@ your-project/
 │   │   └── payment-reminders.md     # one feature, in depth
 │   ├── ARCHITECTURE.md              # the build: how
 │   ├── POC-NOTES.md                 # hints from the spike (if a PoC was run)
+│   ├── DESIGN.md                    # the design system (if one was established)
 │   └── REUSE.md                     # registry of reusable code (grows as you build)
 ├── poc/ … (throwaway mock-data spike — deletable)
 └── src/ … (scaffolded foundation + features, built to spec)

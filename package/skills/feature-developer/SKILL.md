@@ -1,6 +1,6 @@
 ---
 name: feature-developer
-description: Implements one feature as a working, tested vertical slice from its specs/features/<feature>.md and specs/ARCHITECTURE.md, honouring the architecture's invariants, gates, and design principles and proving the slice against the spec's acceptance criteria. Use this in the build loop after a feature has been spec'd and the foundation is scaffolded, whenever the user says "build the X feature", "implement X", "develop the X module", "code up X from its spec", or "let's build the next feature". It reads the feature spec as the source of truth for behaviour and ARCHITECTURE.md as the source of truth for how to build, and it maintains specs/REUSE.md — a registry of reusable code — reading it first to reuse before building and updating it after, so it develops from pre-conceived context instead of rediscovering the codebase each time. It builds to spec; if the spec is wrong or missing, it routes back to the feature-spec skill rather than improvising scope. If there is no feature spec, use feature-spec first; if there is no foundation, use web-app-scaffolder first.
+description: Implements one feature as a working, tested vertical slice from its specs/features/<feature>.md and specs/ARCHITECTURE.md, honouring the architecture's invariants, gates, and design principles and proving the slice against the spec's acceptance criteria. Use this in the build loop after a feature has been spec'd and the foundation is scaffolded, whenever the user says "build the X feature", "implement X", "develop the X module", "code up X from its spec", or "let's build the next feature". It reads the feature spec as the source of truth for behaviour and ARCHITECTURE.md as the source of truth for how to build, and it maintains specs/REUSE.md — a registry of reusable code — reading it first to reuse before building and updating it after, so it develops from pre-conceived context instead of rediscovering the codebase each time. It builds to spec; if the spec is wrong or missing, it routes back to the feature-spec skill rather than improvising scope. If a specs/DESIGN.md exists, it builds the slice with that design system's tokens and components and routes any missing component/token back to the ux-designer skill. If there is no feature spec, use feature-spec first; if there is no foundation, use web-app-scaffolder first.
 ---
 
 # Feature Developer
@@ -15,6 +15,10 @@ Two sources of truth, two different things:
 And one artifact it owns to develop **fast**:
 
 - **`specs/REUSE.md` — what already exists to reuse.** A living registry of shared components, hooks, utilities, API clients, and patterns (path + one-line purpose). Read it **first** so you build from pre-conceived context instead of re-discovering the codebase; update it **after** so the next feature is faster still.
+
+And one more source of truth it conforms to *if the project has one*:
+
+- **`specs/DESIGN.md` — what it must look like.** The design system: tokens, the base component inventory + states, layout/nav patterns, and the accessibility baseline. If present, the slice is built **with** the system's tokens and components and honours its a11y floor — it never hardcodes a colour/spacing the tokens define, nor forks a component the inventory already provides. A needed component/token the system lacks routes **back** to `ux-designer`, not improvised inline. Absent → use the scaffolded stack-default styling; don't invent a system.
 
 ## Preconditions
 
@@ -46,6 +50,7 @@ You are reading decisions, not making them. Pull:
 - **From `specs/features/<feature>.md`:** the primary flow, the detailed requirements (FR-0X.Y IDs), every state (empty/loading/error/success/boundary), the rules & limits, the dependencies, and the **acceptance criteria** — these are your finish line. Note anything marked ⚠️ TBD; you do not get to resolve it yourself (see the seam rule below).
 - **From `specs/ARCHITECTURE.md`:** the stack & conventions (§3/§5 — naming, ID strategy, validation library, where things live), the **always-on invariants** (§6 — validate at every boundary, secrets in env, structured logging with redaction, etc.), the **gates that are ON** (§2/§6 — tenancy scoping, RBAC, PII handling, jobs, caching, webhooks, spend caps, audit logging…), and the **build methodology / design principles** (§8 — vertical slices, acceptance-criteria-per-phase). The slice must honour all of these.
 - **From `specs/REUSE.md` (if present):** the existing reusable surface, so Step 1 starts from a map, not a blank grep.
+- **From `specs/DESIGN.md` (if present):** the tokens, the base component inventory + their states, the layout/nav patterns, and the accessibility baseline — so the slice is built *with* the design system, not styled ad hoc. (No DESIGN.md → use the scaffolded stack-default styling.)
 
 ### Step 1 — Reuse-scan (build from pre-conceived context)
 
@@ -64,11 +69,12 @@ Build the **smallest end-to-end slice that satisfies the spec** — one working 
 - **Honour every gate that's ON.** If multi-tenancy is gated in, every query this feature adds is tenant-scoped and you add/extend the cross-tenant test. If RBAC is on, mutating routes carry the authorization check. If PII handling is on, flagged fields are hashed/tokenized and redacted. If a metered API is involved, it goes through the spend-cap wrapper. If audit logging is on, sensitive/destructive actions in this feature write an audit entry. Don't skip a gate because "it's just one feature."
 - **Follow the conventions.** ID strategy, naming, file layout, error shape, and the data-model conventions from §5 — match them so the codebase stays coherent.
 - **Implement every state the spec defines.** Empty, loading, error, success, and boundary states are requirements, not polish — the spec lists them; build them.
+- **Conform to the design system if one exists.** When `specs/DESIGN.md` is present, build the slice's UI with its tokens and base components and honour its accessibility baseline — don't hardcode a colour/spacing the tokens define or fork a component the inventory already provides. If the slice needs a component or token the system doesn't define, that's a design-system gap: route it to `ux-designer` (which adds it to the system and the style-guide preview) rather than inventing a one-off — same discipline as routing a behaviour gap to `feature-spec`.
 - **Write tests as part of the slice.** Cover the happy path and the spec's edge/failure cases. The architecture's testing stack (§3) is what you use; tests are part of "done," not a later pass.
 - **Reuse from the registry; build new reusables deliberately.** When you create something another feature will want, build it to be reused (clear seam, no feature-specific assumptions baked in) so Step 4 can register it honestly.
 - **A feature can be built partially when part of it is blocked.** If the spec marks a requirement or child sub-feature **blocked** on something that doesn't exist yet (a dependency feature, a ⚠️ TBD the spec deliberately deferred), build the **unblocked** part as a complete vertical slice and explicitly defer the blocked part — don't block the whole feature, and don't build the missing dependency to unblock it (that's the sideways boundary). Prove and register what you built; record what you deferred and why (Step 4). A blocked requirement is *deferred*, not *improvised* — you never invent the blocked behaviour to ship it.
 
-> **Seam rule — don't improvise scope.** If the spec is wrong, ambiguous, contradicts the architecture, or is missing a behaviour you need, **stop and route it back**: a behaviour/requirement gap goes to `feature-spec` (update the feature spec, which may bubble to the PRD); a technical-design gap (a needed pattern the architecture doesn't cover) goes to `web-app-architect`. Get the doc fixed, then build to the fixed doc. Quietly inventing the missing requirement is how the spec and code drift apart.
+> **Seam rule — don't improvise scope.** If the spec is wrong, ambiguous, contradicts the architecture, or is missing a behaviour you need, **stop and route it back**: a behaviour/requirement gap goes to `feature-spec` (update the feature spec, which may bubble to the PRD); a technical-design gap (a needed pattern the architecture doesn't cover) goes to `web-app-architect`; a design-system gap (a component, token, or pattern `DESIGN.md` doesn't define) goes to `ux-designer`. Get the doc fixed, then build to the fixed doc. Quietly inventing the missing requirement, pattern, or component is how the spec, the system, and the code drift apart.
 
 ### Step 3 — Prove it against the spec
 
@@ -132,7 +138,8 @@ Dated entries: what was added/changed/removed and by which feature.
 ## Scope boundary (important)
 
 - **Up (behaviour):** don't invent or redecide *what* the feature does — that's `feature-spec`. Build to the spec; route gaps back to it.
-- **Up (design):** don't redecide the stack, conventions, or gates — that's `web-app-architect`. Build within the architecture; route missing patterns back to it.
+- **Up (technical design):** don't redecide the stack, conventions, or gates — that's `web-app-architect`. Build within the architecture; route missing patterns back to it.
+- **Up (visual design):** don't redecide tokens, components, or the visual language — that's `ux-designer`. Build with the design system; route a missing component/token back to it rather than baking a one-off into the slice.
 - **Sideways:** don't build the foundation or other features. One feature, one vertical slice. If this feature needs another feature that doesn't exist yet, note the dependency (it's already in the spec's §8) rather than building both at once.
 - **Down:** you own the implementation and its tests, and the `REUSE.md` registry. Keep them honest.
 
