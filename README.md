@@ -23,15 +23,22 @@ A chained set of Claude Code skills that take a web app from a rough idea to a r
    │                      "quick response" spike of one change,
    │                      mocking the real seam → feature-spec
    ▼
-┌─────────────────────┐   writes    specs/DESIGN.md         ← the look & feel
-│     ux-designer     │ ──────────▶ + tokens + style guide     (optional)
-└─────────────────────┘   the design system the foundation
-   │                      adopts and every feature conforms to
+┌─────────────────────┐   writes    specs/DESIGN.md +       ← the look & feel,
+│     ux-designer     │ ──────────▶ specs/design/ (PORTABLE)    a portable bundle
+└─────────────────────┘   tokens + buildless preview +        (optional, exportable)
+   │                      BUNDLE.md — inheritable into
+   │                      any project
+   ▼
+┌─────────────────────┐   writes    specs/DESIGN-BINDING.md ← wires the portable
+│    design-binder    │ ──────────▶ + specs/design/themes/      design system to
+└─────────────────────┘   maps PRD flows + ARCHITECTURE       THIS project (optional)
+   │                      routes → bundle components,
+   │                      + project theme + stack adapter
    ▼
 ┌─────────────────────┐   writes    your codebase           ← Phase-0 foundation, proven
 │  web-app-scaffolder │ ──────────▶ (scaffolded + verified)
 └─────────────────────┘   reads POC-NOTES.md as hints,
-   │                      adopts DESIGN.md tokens + components
+   │                      adopts the bundle + binding
    │
    ▼
  ┌── BUILD FEATURES (loop, one feature at a time) ────────────────┐
@@ -48,19 +55,24 @@ A chained set of Claude Code skills that take a web app from a rough idea to a r
  └────────────────────────────────────────────────────────────────┘
 ```
 
-## The seven skills
+## The eight skills
 
 | Skill | Stage | Reads | Writes |
 |---|---|---|---|
 | `product-requirements` | Define the product | the conversation | `specs/PRD.md` |
 | `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
 | `poc-developer` | Spike a quick glimpse — or a "quick response" spike of one change against an existing app *(optional)* | `specs/ARCHITECTURE.md`; brownfield also reads the real code as context | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
-| `ux-designer` | Design the look & feel *(optional)* | `specs/PRD.md` + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + tokens + style guide |
-| `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` | your codebase |
+| `ux-designer` | Design the look & feel — a **portable** bundle *(optional)* | `specs/PRD.md` (persona/mood) + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + `specs/design/` (portable bundle: neutral tokens + buildless preview + `BUNDLE.md`) |
+| `design-binder` | Wire the design system to **this** project *(optional)* | `specs/DESIGN.md` (the bundle) + `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN-BINDING.md` + `specs/design/themes/<project>` |
+| `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | your codebase |
 | `feature-spec` | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
-| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` | code + tests + `specs/REUSE.md` |
+| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | code + tests + `specs/REUSE.md` |
 
-They run in that order: **PRD → architecture → (optional PoC) → (optional design system) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real. The design system is also optional: `ux-designer` establishes the durable visual & interaction language (`specs/DESIGN.md` + token files + a static style-guide preview) that the scaffolder adopts and every feature conforms to. The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, staying within the architecture's rules and conforming to the design system if one exists. Everything durable they produce lives together under one `specs/` folder.
+They run in that order: **PRD → architecture → (optional PoC) → (optional design system → design binding) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real.
+
+The design layer is **two optional skills with a deliberate split**. `ux-designer` establishes the durable visual & interaction language as a **portable, project-agnostic bundle** — `specs/DESIGN.md` + `specs/design/` (stack-neutral tokens, a *zero-build* style-guide preview that opens with no app, and a `BUNDLE.md` manifest). Because it carries no project specifics, the bundle is **exportable**: copy it into another project and reuse the same design system. `design-binder` then **wires that portable system to *this* project** — reading the PRD's flows and the architecture's routes/stack to write `specs/DESIGN-BINDING.md` (which bundle components/tokens realize each screen, plus the chosen stack adapter) and a project **theme override** under `specs/design/themes/` (the brand instance, layered on the bundle without changing it). The scaffolder adopts **both** (the bundle as the language, the binding as how this project uses it) and every feature conforms to both.
+
+The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, staying within the architecture's rules and conforming to the design system + binding if they exist. Everything durable they produce lives together under one `specs/` folder.
 
 ## Installation
 
@@ -72,6 +84,7 @@ Each skill is a folder containing a `SKILL.md`. Drop them into one of Claude Cod
 ├── web-app-architect/SKILL.md
 ├── poc-developer/SKILL.md
 ├── ux-designer/SKILL.md
+├── design-binder/SKILL.md
 ├── web-app-scaffolder/SKILL.md
 ├── feature-spec/SKILL.md
 └── feature-developer/SKILL.md
@@ -133,20 +146,36 @@ Run this when you want to *see* something working before committing to the real 
 
 > It's optional and disposable. The PoC code is throwaway and takes shortcuts on purpose; the next stage reads only the *notes*, never the spike code, and the architecture always wins on any conflict. In brownfield it reads your real code only to learn the seam — it never copies or changes it. Skip it entirely if you'd rather go straight to building.
 
-### 2¾. (Optional) Design the look & feel → `specs/DESIGN.md` + tokens + style guide
+### 2¾. (Optional) Design the look & feel → `specs/DESIGN.md` + a portable bundle
 
-Run this when the product has a real user-facing surface and you want one coherent visual language instead of each feature re-deciding colour, spacing, and component shape on its own. It reads the PRD (persona and flows), the PoC notes if present (the interaction patterns that were validated), and the architecture (the front-end stack), then establishes a **design system**: semantic design tokens (colour/type/spacing/radius/motion), a base component inventory with their states, layout/navigation patterns, and an accessibility baseline. It writes `specs/DESIGN.md` (the durable contract) plus the **token files** and one **static style-guide preview page** so you can *see* the system, not just read it.
+Run this when the product has a real user-facing surface and you want one coherent visual language instead of each feature re-deciding colour, spacing, and component shape on its own. It reads the PRD (persona and mood), the PoC notes if present (the interaction patterns that were validated), and the architecture (the front-end stack), then establishes a **design system as a portable bundle**: semantic design tokens (colour/type/spacing/radius/motion), a base component inventory with their states, layout/navigation patterns, and an accessibility baseline. It writes `specs/DESIGN.md` (the contract) plus everything under `specs/design/` — **stack-neutral tokens** (`tokens.json` + `tokens.css`, the source of truth), optional stack adapters, a **zero-build** static style-guide preview (`preview/index.html`, opens in a browser with **no app, build step, or dev server**), and a `BUNDLE.md` manifest — so you can *see* the system immediately and **export it into another project**.
+
+The bundle is deliberately **project-agnostic** (no flows, screens, or brand instance), which is exactly what makes it inheritable: copy `specs/DESIGN.md` + `specs/design/` into any repo and reuse the same design system.
 
 **Example prompts:**
 - "Set up the design system before we scaffold."
 - "Define the look and feel — colours, typography, spacing, components."
 - "Make it look polished and consistent — establish the visual language."
+- "Make a portable/exportable design system we can reuse across projects."
 
 > It's optional and gated: an internal admin panel, a dev tool, or an app that adopts an off-the-shelf component kit as-is doesn't need one, and the skill will say so rather than manufacturing noise. The preview is a *static* style guide (a gallery rendered once) — distinct from the PoC, which previews what *using the product* feels like. The architecture wins on *how* components are built; the design system governs *how they look*.
 
+### 2⅞. (Optional) Wire the design system to this project → `specs/DESIGN-BINDING.md`
+
+Run this right after the design bundle exists, to **connect that portable system to *your* project**. The bundle is the generic visual language; this skill (`design-binder`) makes it *this app's* design: it reads the PRD (flows/screens and your brand) and the architecture (routes + front-end stack), then writes `specs/DESIGN-BINDING.md` — a **screen/flow → component map** (which bundle components, tokens, and layout realize each screen), the **chosen stack adapter** the architecture consumes — plus a project **theme override** under `specs/design/themes/` (your brand colours layered on the bundle's semantic tokens, without changing the bundle). The scaffolder and every feature read the binding *alongside* the bundle, so screens are built from the right components, in your brand.
+
+This is the second half of the portable-design split: **one exportable design artifact (the bundle) inheritable into any project, and one connecting artifact (the binding) that contextualizes it into your specific project.** Run a fresh binding in each project that inherits the same bundle.
+
+**Example prompts:**
+- "Wire the design system up to this project."
+- "Map our screens to the design system's components."
+- "Set our brand colour/theme on the design system, and pick the adapter for our stack."
+
+> It's optional and gated like the design system — there's nothing to bind if no bundle exists (use `ux-designer` first), and a trivial single-screen app may not need a map. It never changes the portable bundle (that stays exportable); a missing component routes back to `ux-designer`, a missing flow back to `product-requirements`.
+
 ### 3. Stand up the foundation → your codebase
 
-Run this once the architecture is approved. It reads `specs/ARCHITECTURE.md` (plus `specs/POC-NOTES.md` if a PoC was spiked, as advisory hints, and `specs/DESIGN.md` if a design system was established, adopting its tokens and base components), scaffolds exactly the foundation the doc calls for (repo, stack, auth, the gated pieces, CI gate), and proves it against the architecture's own Phase-0 acceptance criteria. It builds the foundation only — not features.
+Run this once the architecture is approved. It reads `specs/ARCHITECTURE.md` (plus `specs/POC-NOTES.md` if a PoC was spiked, as advisory hints; `specs/DESIGN.md` + its bundle if a design system was established, adopting its tokens and base components; and `specs/DESIGN-BINDING.md` if a binding exists, wiring the chosen stack adapter, applying your project theme, and using its screen→component map for Phase-0 screens), scaffolds exactly the foundation the doc calls for (repo, stack, auth, the gated pieces, CI gate), and proves it against the architecture's own Phase-0 acceptance criteria. It builds the foundation only — not features.
 
 **Example prompts:**
 - "Scaffold the project and stand up Phase 0."
@@ -169,7 +198,7 @@ With the foundation standing, you build features one by one, as a pair of steps 
 - "Build the invoice-reminder feature from its spec."
 - "Implement the Goodreads sync module."
 
-> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), conforms to the design system if `specs/DESIGN.md` exists (its tokens, components, and a11y baseline), and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. If the spec is missing a behaviour it needs, it routes back to `feature-spec`; if it needs a component or token the design system doesn't define, it routes back to `ux-designer` — rather than improvising either.
+> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), conforms to the design system if `specs/DESIGN.md` exists (its tokens, components, and a11y baseline) and builds the screen from `specs/DESIGN-BINDING.md`'s screen→component map in your project's theme if a binding exists, and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. If the spec is missing a behaviour it needs, it routes back to `feature-spec`; if it needs a component or token the design system doesn't define, it routes back to `ux-designer`; if a screen has no/wrong component mapping or theme value, it routes back to `design-binder` — rather than improvising any of them.
 
 ---
 
@@ -186,17 +215,20 @@ A short walkthrough of one project moving through the stages:
 3. **You:** "Before we build it for real, spike a quick PoC of the reminder flow." *(optional)*
    **→** It builds a throwaway `/poc/` with three mock-data screens you can click through, then writes `specs/POC-NOTES.md` — validated patterns, a reusable `ReminderTimeline` component, the data shape the UI needed, and a note that auth/DB are mocked. You get a feel for it without committing to anything.
 
-4. **You:** "Set up the design system before we scaffold." *(optional)*
-   **→** It reads the PRD (persona, flows) and the PoC notes (the inline timeline that landed), and writes `specs/DESIGN.md` plus `tokens.ts` and a static style-guide page: semantic colour/type/spacing tokens, a component inventory with states, a sidebar shell, and a WCAG AA baseline. You open the style guide and *see* the system before any feature is built.
+4. **You:** "Set up a portable design system before we scaffold." *(optional)*
+   **→** It reads the PRD (persona, mood) and the PoC notes (the inline timeline that landed), and writes `specs/DESIGN.md` plus the **portable bundle** under `specs/design/`: stack-neutral `tokens.json` + `tokens.css`, a **zero-build** `preview/index.html`, and `BUNDLE.md`. You double-click the preview — no app, no build — and *see* the system. It's project-agnostic, so you could drop it into a future project too.
 
-5. **You:** "Scaffold Phase 0."
-   **→** It reads the architecture (and the PoC notes as hints, and adopts the design tokens + base components) and stands up the repo, stack, auth, the scheduler, the CI gate — then runs the Phase-0 checks until green and stops. The `/poc/` code is ignored; only the notes carry forward.
+5. **You:** "Wire it up to this project — brand colour is teal, we're on React + Tailwind." *(optional)*
+   **→** `design-binder` reads the bundle, the PRD (flows/screens), and the architecture (stack), then writes `specs/DESIGN-BINDING.md` (mapping `/invoices`, `/invoices/:id`, `/invoices/new` to the bundle's table/card/timeline/form components + the sidebar shell, and selecting the Tailwind adapter) plus `specs/design/themes/invoicetracker.css` (primary → teal, contrast re-checked). The bundle stays untouched and exportable; this project is now fully wired.
 
-6. **You:** "Spec out the reminder feature — all the states and timing rules."
+6. **You:** "Scaffold Phase 0."
+   **→** It reads the architecture (and the PoC notes as hints), adopts the bundle (tokens + base components) **and** the binding (wires the Tailwind adapter, applies the teal theme, sets up the mapped screens), and stands up the repo, stack, auth, the scheduler, the CI gate — then runs the Phase-0 checks until green and stops. The `/poc/` code is ignored; only the notes carry forward.
+
+7. **You:** "Spec out the reminder feature — all the states and timing rules."
    **→** `specs/features/payment-reminders.md`, expanding the PRD's reminder requirement into flows, schedule rules, and failure behaviour; the PRD's feature index links to it.
 
-7. **You:** "Now build the reminder feature."
-   **→** `feature-developer` reads that spec (what) and the architecture (how), checks `specs/REUSE.md` and reuses the `ReminderTimeline` the PoC notes seeded, builds the slice with the design system's tokens and components — scheduler hook-up, all the states, tests — within the architecture's gates, proves it against the spec's acceptance criteria, and registers the new reusable bits it created. Then you loop back to spec the next feature.
+8. **You:** "Now build the reminder feature."
+   **→** `feature-developer` reads that spec (what) and the architecture (how), checks `specs/REUSE.md` and reuses the `ReminderTimeline` the PoC notes seeded, builds the slice with the design system's tokens and components — using the binding's screen→component map, in the teal theme — scheduler hook-up, all the states, tests — within the architecture's gates, proves it against the spec's acceptance criteria, and registers the new reusable bits it created. Then you loop back to spec the next feature.
 
 From there you stay in the build loop on a proven foundation: spec a feature, build it, repeat — the reuse registry making each pass a little faster than the last.
 
@@ -210,7 +242,14 @@ your-project/
 │   │   └── payment-reminders.md     # one feature, in depth
 │   ├── ARCHITECTURE.md              # the build: how
 │   ├── POC-NOTES.md                 # hints from the spike (if a PoC was run)
-│   ├── DESIGN.md                    # the design system (if one was established)
+│   ├── DESIGN.md                    # the design-system contract (if one was established)
+│   ├── design/                      # the PORTABLE design bundle (exportable into other projects)
+│   │   ├── tokens.json / tokens.css #   stack-neutral tokens (the source of truth)
+│   │   ├── adapters/                #   optional, generated for your stack
+│   │   ├── themes/                  #   your project's brand instance (written by design-binder)
+│   │   ├── preview/index.html       #   zero-build style-guide (opens with no app)
+│   │   └── BUNDLE.md                #   manifest + "adopt into a new project" recipe
+│   ├── DESIGN-BINDING.md            # wires the bundle to THIS project (if a binding was made)
 │   └── REUSE.md                     # registry of reusable code (grows as you build)
 ├── poc/ … (throwaway mock-data spike — deletable)
 └── src/ … (scaffolded foundation + features, built to spec)

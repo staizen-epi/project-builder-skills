@@ -38,7 +38,7 @@ This is a disposable glimpse, so it must not be gated behind heavy upstream docs
 
 1. **Read `specs/ARCHITECTURE.md` if present** — for scope, flows, and the intended stack/UX direction, so the spike previews something close to the real thing. The PoC may still *diverge* for speed (e.g. an in-memory mock instead of the real DB) — that's fine and expected.
 2. **Read `specs/PRD.md` if present** — for the persona, the flows worth previewing, and what "looks impressive in a demo" means here.
-3. **Read `specs/DESIGN.md` (and its tokens) or any visual reference if present** — so the spike looks on-brand. Pull tokens (colour/type/spacing) and component look so the prototype previews the *real* visual language, not placeholder grey. Apply it loosely — this is still a throwaway spike; don't build the system for real (that's `ux-designer`'s job).
+3. **Read `specs/DESIGN.md` and consume its portable bundle (`specs/design/`) if present** — so the spike looks on-brand. The bundle is **buildless**: link `specs/design/tokens.css` (or import `tokens.json`) directly — no scaffolding, build step, or app needed — and the spike is instantly on-brand instead of placeholder grey. If a `specs/DESIGN-BINDING.md` + project theme (`specs/design/themes/<project>.css`) exist, also link the theme so the spike matches *this project's* brand, not the bundle's neutral default. (No bundle but a visual reference? Pull colour/type/spacing from that instead.) Apply it loosely — this is still a throwaway spike; don't build the system for real (that's `ux-designer`'s) or the binding (that's `design-binder`'s).
 4. **Neither present →** you can still spike from the conversation. For anything non-trivial, mention that a PRD/architecture would normally come first (point at `product-requirements` / `web-app-architect`), but don't force it.
 
 ## Mode detection (do this first, then announce)
@@ -71,7 +71,7 @@ A PoC that tries to show everything shows nothing. **The one high-impact decisio
 Default everything else and record it in the notes:
 - **Fidelity** — clickable UI with mock data (front-end only, in-memory). Lower (static mockup) or higher (a fake API layer) only if asked or the flow demands it.
 - **Stack** — the architecture's intended front-end stack; if none, a fast familiar stack (e.g. Vite + React + Tailwind).
-- **Appearance** — style to `DESIGN.md` tokens / visual reference loosely if they exist; else clean defaults.
+- **Appearance** — if the design bundle exists, link `specs/design/tokens.css` (buildless, no scaffolding needed) so the spike is on-brand; else style to a visual reference loosely, or clean defaults.
 - **Breadth** — one to three screens covering the hero flow. Resist secondary flows.
 
 Bias hard toward the **smallest spike that demonstrates the value**.
@@ -107,7 +107,7 @@ Default everything else:
 - **Strategy — read-as-context, mock the seam (default).** Build the change in `/poc` against a mocked version of the real seam (mock the hook/endpoint/props using the *real names and shapes* you learned). Do **not** copy real components into `/poc`; re-create only the thin surface needed to host the change.
 - **Fallback — thin fake shell.** If the seam is too entangled to mock cleanly (deeply coupled state, no clear boundary), build a thin fake facade of just that surface and make **only the change** interactive. Note in the seam doc *why* you fell back.
 - **Never — copy real code into `/poc`.** Declining this is correct (it breaks the disposable handoff and drifts instantly). If the user explicitly insists on running against real code, that's no longer a PoC — hand off to `feature-developer` (after `feature-spec`) instead.
-- **Stack/appearance** — match the real app's stack and `DESIGN.md` tokens so the spike looks slotted-in.
+- **Stack/appearance** — match the real app's stack and consume the design bundle's tokens (`specs/design/tokens.css`) so the spike looks slotted-in.
 - **Breadth** — the one change and the minimum surrounding mock to make it clickable.
 
 ### B2 — Build the spike (mock the seam, isolated, fast)

@@ -1,2 +1,2 @@
 - [Skills under test in package](skills-under-test-in-package.md) — the skills being developed/tested live in package/skills, not .claude/skills
-- [Sync skills via git diff](sync-skills-via-git-diff.md) — use git to find changed skills when syncing to ~/.claude; ideally every commit equals a sync
+- [Sync skills via git diff](sync-skills-via-git-diff.md) — git-check only for syncing to personal ~/.claude/skills; plain rsync (no git check) for other project dirs
