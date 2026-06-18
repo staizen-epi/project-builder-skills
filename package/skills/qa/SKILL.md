@@ -27,7 +27,7 @@ The test code itself lives **in the codebase**, per the architecture's testing s
    - the **testID scheme** (the `data-testid` convention), and
    - the **test-environment contract** (a runnable, *seeded*, *resettable* target — base URL + seed data + a reset hook).
 
-   **Either missing →** route to `web-app-architect` to add it (see the seam below). Don't invent a scheme or scrape the DOM blind, and don't seed test data ad hoc — that makes runs non-idempotent.
+   **Either missing →** route to `web-app-architect` to add it (see the seam below). Don't invent a scheme or scrape the DOM blind, and don't seed test data ad hoc — that makes runs non-idempotent. qa consumes the contract's seed and creates only *transient, per-test* state through the public surface; a *foundational* seed gap routes back to `web-app-architect` to widen the seed (see Step 3a).
 2. **The app must be built and runnable.** There must be features to test and a way to stand the app up (the test-env contract). Nothing built yet → there's nothing to QA; point at the build loop (`feature-spec` → `feature-developer`).
 3. **`specs/QUALITY.md` may or may not exist.** Present → each `NFR-0X` with a `Verified by: qa` handoff becomes a runnable check, and a perf NFR turns the perf pass on. Absent → run the always-on black-box passes only (e2e + smoke), and note that no NFR targets were available to verify.
 4. **`specs/PRD.md` + `specs/features/` are the source of truth for *what* to test.** The e2e pass covers the PRD's flows and each feature spec's acceptance criteria — qa verifies stated behaviour; it does not invent new behaviour to test (a gap routes to `feature-spec`).
@@ -110,6 +110,21 @@ Use the architecture's protocol (§3) to shape requests. Map each result to its 
 
 A target that *can't* be verified black-box (e.g. a 99.9% monthly SLA needs a monitor over time, not a one-shot test) is recorded honestly in the report as "verified by ops monitoring, not in-gauntlet" rather than faked green.
 
+### Step 3a — Get the test data the checks need (consume the seed; create through the surface; route the rest)
+
+Tests need data in specific shapes — a record in a given state, two tenants for an IDOR probe, a paginated list, an expired item. Test data is **not qa's to own**: the architecture's **test-environment contract** (§Testability) owns the seed + reset hook, and qa consumes it. The question for every check is *where the data it needs comes from* — answer it with this order, not by reaching past the public surface:
+
+1. **Use the seed.** If the test-env contract already seeds the shape a check needs, use it. This is the default and the cheapest path.
+2. **Create it through the public surface.** If a check needs *transient, test-local* state — a record this one test creates, exercises, and the reset hook wipes — create it the black-box way: drive the app's own UI/API to set it up (same surface the test asserts on). This stays black-box (no DB writes, no source imports, no back-doors) and keeps the datum local to the test that needs it. Prefer this for one-off, per-test state.
+3. **Route a *foundational* data need to `web-app-architect`.** When a check **foundationally** needs a wider seeded baseline than the contract provides — and surface-level creation is the wrong tool because the data is **structural, shared, or impractical to build per-test** — do **not** paper over it by scripting heavy setup through the UI on every run. That makes runs slow, brittle, and re-creates seed state ad hoc (the very non-idempotency the contract exists to prevent). Instead **route the gap to `web-app-architect` to widen the test-env contract's seed**, and record the demand in `QA-PLAN.md` (§ Test-data needs) so it's reviewable. This is a seam break like a missing testID — the contract is the owner, qa names the need.
+
+   **Foundational (route up) vs. transient (create through surface):**
+   - Route up when the data is a **precondition of the environment**, not of one test: ≥2 tenants/orgs for cross-tenant/IDOR checks, distinct **roles/permission fixtures** for RBAC checks, a **volume baseline** a perf NFR loads against (you can't build 10k rows through the UI each run), reference/lookup data multiple suites depend on, or any shape several checks share.
+   - Create through the surface when the data is **one test's own scenario**: the single invoice this test downloads, the draft this test publishes, the comment this test edits — built, asserted, and reset within the test.
+   - The smell that means *route up*: you're driving the UI/API mainly to manufacture starting state (not to exercise behaviour), the setup is duplicated across tests, or it's too slow/large to rebuild every run.
+
+   qa **names the seed gap and routes it**; it does **not** edit the seed or the contract itself (that's `web-app-architect`), and it does **not** quietly script around a missing baseline. Until the contract is widened, record the affected check as blocked-on-seed in the report rather than faking the data.
+
 ### Step 4 — Run the gauntlet to green (the gate)
 
 The verdict is observable, not "tests exist." Run in this order and **restart the full gauntlet on any failure until it passes clean** (the "QA gauntlet" discipline):
@@ -117,7 +132,7 @@ The verdict is observable, not "tests exist." Run in this order and **restart th
 1. **CI gate first.** The architecture's own CI gate — lint, typecheck, unit/integration tests, dependency + secret scan (§6 invariant) — must be **green before** the black-box passes run. A red CI gate blocks the gauntlet; fix (or route the bug to `feature-developer`) and restart. This skill **complements** the CI gate; it does not replace it.
 2. **Stand up the test-env target** per the architecture's contract: start the app, apply the seed, so data is deterministic. The **reset hook** runs between runs so the gauntlet is **idempotent** — the same starting state every time, which is what makes "restart until green" sound.
 3. **Run the gated passes** (e2e + smoke + any API-vuln + any perf) and the NFR checks.
-4. **On any failure:** identify the owner and route it (behaviour bug → `feature-developer`; missing/wrong selector or testID → `feature-developer` for the testID, `web-app-architect` for the scheme; infeasible/missing target → `quality-requirements`; missing test-env/contract → `web-app-architect`). After the fix, **restart from step 1** — partial passes don't count. The gate is green only when a full clean run succeeds.
+4. **On any failure:** identify the owner and route it (behaviour bug → `feature-developer`; missing/wrong selector or testID → `feature-developer` for the testID, `web-app-architect` for the scheme; infeasible/missing target → `quality-requirements`; missing test-env/contract **or a foundational seed gap** → `web-app-architect`). After the fix, **restart from step 1** — partial passes don't count. The gate is green only when a full clean run succeeds.
 5. **Record the verdict** (and the restart history) in `QA-REPORT.md`.
 
 > qa **owns the verdict** but **routes the fix.** It does not patch feature code to make a test pass (that's `feature-developer`), does not change a target to make an NFR pass (that's `quality-requirements`), and does not add the testID scheme/test-env itself (that's `web-app-architect`). It tests, reports, enforces, and routes.
@@ -184,8 +199,20 @@ to its security NFR id where one exists.
 | NFR-03 | no cross-tenant access | IDOR/cross-tenant in API-vuln | yes |
 | NFR-02 | 99.9% uptime monthly | ops uptime monitor | no — ops procedure |
 
-## 7. Changelog
-Dated entries: passes added/removed, selectors updated, checks added.
+## 7. Test-data needs
+How each check gets its data: from the seed, created through the surface, or a
+foundational seed gap routed to web-app-architect. Source of truth for the seed
+is the architecture's test-env contract; this records what qa consumes and what
+it has asked the architect to widen.
+| Need | Source | Status |
+|---|---|---|
+| ≥2 tenants (cross-tenant IDOR) | seed (test-env contract) | satisfied |
+| Distinct admin/member roles (RBAC checks) | **seed gap → web-app-architect** | requested [date] |
+| 10k invoices (perf load baseline) | **seed gap → web-app-architect** | requested [date] |
+| Single invoice under test | created through UI/API, reset after | per-test |
+
+## 8. Changelog
+Dated entries: passes added/removed, selectors updated, checks added, seed needs requested.
 ```
 
 ## Output: specs/QA-REPORT.md
@@ -225,7 +252,7 @@ Brief: run 1 failed on X → fixed by Y → run 2 green.
 
 - **Up (targets):** it does not set non-functional targets — that's `quality-requirements` (`QUALITY.md`). qa turns a target into a check and verifies it; a missing/infeasible target routes back there.
 - **Up (behaviour):** it does not define what the app should do — that's the PRD / `feature-spec`. qa proves stated acceptance criteria; an untestable or missing behaviour routes to `feature-spec`.
-- **Up (technical design):** it does not decide the stack, the testID scheme, or the test-env contract — that's `web-app-architect`. A missing scheme/contract routes back there.
+- **Up (technical design):** it does not decide the stack, the testID scheme, or the test-env contract — that's `web-app-architect`. A missing scheme/contract routes back there. The **seed** is part of that contract: qa consumes it and creates *transient, per-test* state through the public surface, but a **foundational** seed gap (a wider baseline a check structurally needs — extra tenants, role fixtures, a perf volume) routes to `web-app-architect` to widen the seed; qa never edits the seed or scripts around it (see Step 3a).
 - **Sideways (fixing):** it does not fix feature bugs or emit testIDs — that's `feature-developer`. qa routes the bug/seam-break and re-runs; it never patches feature code to force a green.
 - **Down:** it owns the test code (in the codebase), `QA-PLAN.md`, and `QA-REPORT.md`, and the gate verdict. Keep them honest — never mark a check green it didn't actually prove.
 
@@ -251,3 +278,6 @@ While building the selector map, qa finds the download button in the running app
 
 **Example 4 — declining to invent a target**
 User: "QA the app and make sure it's fast enough." There's no performance NFR in `QUALITY.md`. qa does **not** invent a latency budget to test against — "fast enough" isn't a number it owns. It runs the always-on passes, notes the perf pass is off for lack of a target, and routes the user to `quality-requirements` to set a measurable perf NFR (e.g. "p95 < 200 ms at N users"); once that exists, qa turns it into a perf pass. Setting the target isn't qa's job; proving it is.
+
+**Example 5 — routing a foundational seed gap instead of scripting it through the UI**
+The test-env contract seeds one tenant. qa needs to prove the tenant-isolation NFR (cross-tenant IDOR) and to RBAC-check admin-vs-member routes — both need data the seed doesn't have: a *second* tenant and two distinct role fixtures. qa does **not** script the UI to register a second org and invite a second-role user on every run (slow, brittle, and re-creating seed state ad hoc — the non-idempotency the contract exists to prevent). It distinguishes the two: the *single record under test* in each e2e case it creates through the surface and lets the reset hook wipe; but the second tenant and the role fixtures are **foundational environment preconditions several checks share**, so it routes them to `web-app-architect` to widen the seed and records both in `QA-PLAN.md` §7 (Test-data needs) as "seed gap → requested." Until the seed is widened, it marks the isolation and RBAC checks blocked-on-seed in the report rather than faking the data. Once the architect adds the second tenant + roles, qa runs the checks against the deterministic seed and the gate can go green.

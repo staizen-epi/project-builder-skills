@@ -149,6 +149,15 @@ Two small but load-bearing conventions live in `ARCHITECTURE.md` because they ar
 | Multi-tenant SaaS | ≥2 seeded tenants + a seeded user per role (for cross-tenant/RBAC tests) + base URL + a **reset hook** |
 | Single-user / internal tool | Base URL + one seeded user + a **reset/teardown hook** |
 
+**Size the seed from the NFRs and PRD, not just the app type.** The table is the floor; the *shape* of the seed is **derived from what the checks will need**, which you can read off the upstream artifacts before `qa` ever runs. Walk `QUALITY.md` and `PRD.md` and seed what each verifiable target structurally requires:
+
+- **Tenant-isolation / cross-tenant NFR →** ≥2 tenants (you cannot prove isolation with one).
+- **RBAC / distinct roles (PRD or a security NFR) →** one seeded user **per role**, so authz checks have something to fail against.
+- **Performance NFR with a volume/concurrency clause** ("p95 at 100 users", "10k rows") **→** seed (or make cheaply generatable) that **volume baseline** — qa can't build it through the UI each run.
+- **Feature states the PRD/specs call out** (expired item, paginated list past the threshold, an empty vs. populated dashboard) **→** seed any *shared, structural* baseline those states need; leave one-off per-test records to qa (it creates those through the public surface).
+
+This is the **proactive half of the seam**: you seed what the NFRs/PRD imply up front, so qa isn't blocked on day one. The **reactive half** is qa's: it consumes this seed, creates transient per-test data through the public surface, and routes any *foundational* seed gap you couldn't foresee back here to widen the contract (recorded in `QA-PLAN.md` §7). Size it from the requirements; don't default to a thin one-record seed and make every project start by bouncing gaps back.
+
 The **reset hook is always required** regardless of app size — it's what gives every run the same starting state, which is what makes `qa`'s "restart the gauntlet until green" sound. Define *how* the target is stood up and seeded and reset (a seed script, a fixtures command, an ephemeral DB per run — your choice of mechanism), and where (a dedicated test profile/env). Don't force multi-tenant seeding onto a single-user tool; do always give it a reset hook.
 
 These two feed `specs/QA-PLAN.md`: `qa` reads the scheme to build its selector map and stands the app up against the contract. If either is absent when `qa` runs, `qa` routes back here to add it — so define both at architecture time.
@@ -233,7 +242,12 @@ The two conventions qa and feature-developer consume (always include):
 - **test-environment contract** — a seeded, resettable target, scaled to the app
   (SaaS: ≥2 tenants + per-role users + reset hook; single-user/internal: base
   URL + one user + reset/teardown hook). The reset hook is always required (it
-  makes qa's gauntlet idempotent). State how it's stood up, seeded, and reset.
+  makes qa's gauntlet idempotent). **Size the seed from the NFRs + PRD**, not just
+  app type: an isolation NFR → ≥2 tenants, an RBAC requirement → a user per role,
+  a perf-volume NFR → that baseline, called-out feature states → their shared
+  structural data. State how it's stood up, seeded, and reset; qa fills transient
+  per-test data through the public surface and routes any foundational seed gap
+  back here to widen this contract.
 
 ## 8. Build phases
 Phase 0 (foundation) first, then vertical slices. Each phase lists its
