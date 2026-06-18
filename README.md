@@ -13,6 +13,7 @@ flowchart TD
     PRD --> ARCH[web-app-architect]
     ARCH --> SCAF[web-app-scaffolder]
     SCAF --> LOOP
+    LOOP --> QA[qa · gate before release]
 
     subgraph OPT [optional · gated to what the app needs]
         direction TB
@@ -29,12 +30,15 @@ flowchart TD
     POC -.-> SCAF
     ARCH -.-> UX
     BIND -.-> SCAF
+    QUAL -.-> QA
 
     subgraph LOOP [build loop · one feature at a time, repeat]
         direction LR
         SPEC[feature-spec] --> DEV[feature-developer]
         DEV -. next feature .-> SPEC
     end
+
+    QA -. fix routes back .-> LOOP
 
     classDef optional stroke-dasharray: 5 5;
     class QUAL,POC,UX,BIND optional;
@@ -64,9 +68,17 @@ flowchart TD
     FEAT --> CODE
     POC -. hints .-> CODE
     CODE <--> REUSE["REUSE.md"]
+
+    CODE --> QA["qa"]
+    ARCH --> QA
+    QUAL --> QA
+    FEAT --> QA
+    QA --> QAPLAN["QA-PLAN.md + QA-REPORT.md"]
 ```
 
-## The nine skills
+The suite is **test-centered via a shared seam**: the architect defines a **testID scheme** + a seeded, resettable **test-environment contract** in `ARCHITECTURE.md`; `feature-developer` gives every interactive/meaningful element a **function-named** `data-testid` per that scheme (`download-button`, `quick-search-input`, `invoice-row-{id}` — named by *what it does*); and `qa` derives its black-box selectors from the same scheme — so it grabs each element by name instead of parsing the page or writing deep XPaths, and every selector stays stable (and traces back to a requirement).
+
+## The ten skills
 
 Each skill below links to its own reference page — how it works, sample prompts, what it produces, and who depends on it. See [`docs/skills/`](docs/skills/README.md) for the full index.
 
@@ -81,12 +93,15 @@ Each skill below links to its own reference page — how it works, sample prompt
 | [`web-app-scaffolder`](docs/skills/web-app-scaffolder.md) | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | your codebase |
 | [`feature-spec`](docs/skills/feature-spec.md) | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
 | [`feature-developer`](docs/skills/feature-developer.md) | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | code + tests + `specs/REUSE.md` |
+| [`qa`](docs/skills/qa.md) | Verify & gate the build | `specs/ARCHITECTURE.md` (testID scheme + test-env) + `specs/QUALITY.md` (NFRs) + `specs/PRD.md`/`specs/features/` + the running app | test code + `specs/QA-PLAN.md` + `specs/QA-REPORT.md` |
 
-They run in that order: **PRD → architecture → (optional PoC) → (optional design system → design binding) → scaffold**, then a per-feature **build loop**. [`quality-requirements`](docs/skills/quality-requirements.md) is the optional non-functional companion to the PRD — it sits after the PRD and **alongside the architect**, owning the *how-well* (performance, availability, security, accessibility, observability, and a first-class GDPR section) as measurable `NFR-0X` targets in `specs/QUALITY.md` that the architect designs to. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real.
+They run in that order: **PRD → architecture → (optional PoC) → (optional design system → design binding) → scaffold**, then a per-feature **build loop**, then **qa** as the verification gate before release. [`quality-requirements`](docs/skills/quality-requirements.md) is the optional non-functional companion to the PRD — it sits after the PRD and **alongside the architect**, owning the *how-well* (performance, availability, security, accessibility, observability, and a first-class GDPR section) as measurable `NFR-0X` targets in `specs/QUALITY.md` that the architect designs to. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real.
 
 The design layer is **two optional skills with a deliberate split**. `ux-designer` establishes the durable visual & interaction language as a **portable, project-agnostic bundle** — `specs/DESIGN.md` + `specs/design/` (stack-neutral tokens, a *zero-build* style-guide preview that opens with no app, and a `BUNDLE.md` manifest). Because it carries no project specifics, the bundle is **exportable**: copy it into another project and reuse the same design system. `design-binder` then **wires that portable system to *this* project** — reading the PRD's flows and the architecture's routes/stack to write `specs/DESIGN-BINDING.md` (which bundle components/tokens realize each screen, plus the chosen stack adapter) and a project **theme override** under `specs/design/themes/` (the brand instance, layered on the bundle without changing it). The scaffolder adopts **both** (the bundle as the language, the binding as how this project uses it) and every feature conforms to both.
 
 The build loop is the `feature-spec` → `feature-developer` pair, run once per feature: the writer details how a feature behaves (and keeps the PRD's feature index pointing at it), the developer implements that behaviour as a tested vertical slice — reusing code from a registry it maintains (`specs/REUSE.md`) so it builds from pre-conceived context, staying within the architecture's rules and conforming to the design system + binding if they exist. Everything durable they produce lives together under one `specs/` folder.
+
+`qa` is the **verification gate** that closes the loop. It tests the running app as a **black box** — through the rendered UI and the published API, never importing source or touching the database — across four gated passes: **end-to-end feature tests** (always on), **smoke-set flagging** (always on — it tags the critical-path cases so a fast check can run just those), a **bounded, non-destructive API-vulnerability scan** (when the app exposes an API or holds sensitive/multi-tenant data — authz/IDOR/cross-tenant, injection, headers, secret leakage), and **performance testing** (when `QUALITY.md` sets a performance target to test against). It turns each `QUALITY.md` `NFR-0X` into a runnable check, requires the CI gate green first, and **restarts the whole gauntlet on any failure until it's green** — owning the pass/fail verdict but routing each fix back to its owner (a bug to `feature-developer`, a missing target to `quality-requirements`). It writes `specs/QA-PLAN.md` (the durable test contract) and `specs/QA-REPORT.md` (the latest verdict).
 
 ## Installation
 
@@ -102,13 +117,26 @@ Each skill is a folder containing a `SKILL.md`. Drop them into one of Claude Cod
 ├── design-binder/SKILL.md
 ├── web-app-scaffolder/SKILL.md
 ├── feature-spec/SKILL.md
-└── feature-developer/SKILL.md
+├── feature-developer/SKILL.md
+└── qa/SKILL.md
 ```
 
 - **Project** (`.claude/skills/` in your repo) — travels with the codebase; good when you want the team to share them.
 - **Personal** (`~/.claude/skills/`) — available across all your projects; good for general reuse. The two locations stack, so you can use both.
 
 If the `.claude/skills/` directory didn't exist when your session started, restart Claude Code once so it gets watched. Edits to an existing `SKILL.md` are picked up live.
+
+### Seed the project's memory too (recommended)
+
+The skills ship with a small **seed memory** so the consumer project's Claude *remembers to look for these skills* instead of improvising. Without it, a freshly cloned project has the skill files on disk but no habit of checking them — and skills under-trigger by default. Copy the seed alongside the skills:
+
+```
+.claude/memory/
+├── MEMORY.md                       # the memory index (loaded each session)
+└── scan-local-claude-skills.md     # "on every prompt, check .claude/skills/ first and prefer a matching skill"
+```
+
+So a full install is **two copies**: the skills into `.claude/skills/`, and the seed memory into `.claude/memory/`. The memory entry is the bit that makes Claude reach for the spec-driven skills on its own — drop it in once and the project starts with the right habit baked in.
 
 ## How it works
 
@@ -213,7 +241,18 @@ With the foundation standing, you build features one by one, as a pair of steps 
 - "Build the invoice-reminder feature from its spec."
 - "Implement the Goodreads sync module."
 
-> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), conforms to the design system if `specs/DESIGN.md` exists (its tokens, components, and a11y baseline) and builds the screen from `specs/DESIGN-BINDING.md`'s screen→component map in your project's theme if a binding exists, and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. If the spec is missing a behaviour it needs, it routes back to `feature-spec`; if it needs a component or token the design system doesn't define, it routes back to `ux-designer`; if a screen has no/wrong component mapping or theme value, it routes back to `design-binder` — rather than improvising any of them.
+> It reads the feature spec (what to build) and the architecture (how to build — honouring its invariants, gates, and conventions), conforms to the design system if `specs/DESIGN.md` exists (its tokens, components, and a11y baseline) and builds the screen from `specs/DESIGN-BINDING.md`'s screen→component map in your project's theme if a binding exists, and proves the slice against the spec's own acceptance criteria. It also keeps `specs/REUSE.md`, a registry of reusable code it reads *before* building and updates *after* — so it reuses what exists instead of rediscovering the codebase each feature, and gets faster as the project grows. It gives every interactive/meaningful element a **function-named** `data-testid` (e.g. `download-button`, `quick-search-input`) following the architecture's testID scheme — so `qa` can grab each element by what it does instead of parsing the page, and selectors stay stable. If the spec is missing a behaviour it needs, it routes back to `feature-spec`; if it needs a component or token the design system doesn't define, it routes back to `ux-designer`; if a screen has no/wrong component mapping or theme value, it routes back to `design-binder` — rather than improvising any of them.
+
+### 5. Verify & gate before release → `specs/QA-PLAN.md` + `specs/QA-REPORT.md`
+
+When features are built and you're heading toward a release, `qa` runs the **gauntlet**: it tests the running app as a black box and owns the pass/fail gate.
+
+**Example prompts:**
+- "QA the app and tell me if it's release-ready."
+- "Run the test gauntlet — e2e, smoke, and scan the API for vulnerabilities."
+- "Verify our NFRs are met."
+
+> It derives e2e selectors from the architecture's testID scheme (so they trace back to requirements), stands the app up against the seeded, resettable test environment, runs the gated passes (e2e + smoke always; API-vuln when there's an API or sensitive data; performance when `QUALITY.md` sets a target), and turns each `NFR-0X` into a runnable check. The CI gate must be green first; on any failure it routes the fix to the right owner and **restarts the whole gauntlet until green**. It tags the smoke set in the suite and writes a durable test contract (`QA-PLAN.md`) plus the latest verdict (`QA-REPORT.md`).
 
 ---
 
@@ -245,7 +284,10 @@ A short walkthrough of one project moving through the stages:
 8. **You:** "Now build the reminder feature."
    **→** `feature-developer` reads that spec (what) and the architecture (how), checks `specs/REUSE.md` and reuses the `ReminderTimeline` the PoC notes seeded, builds the slice with the design system's tokens and components — using the binding's screen→component map, in the teal theme — scheduler hook-up, all the states, tests — within the architecture's gates, proves it against the spec's acceptance criteria, and registers the new reusable bits it created. Then you loop back to spec the next feature.
 
-From there you stay in the build loop on a proven foundation: spec a feature, build it, repeat — the reuse registry making each pass a little faster than the last.
+9. **You:** "QA the app before we ship."
+   **→** `qa` derives selectors from the architecture's testID scheme, stands the app up against the seeded test environment, and runs the gauntlet: e2e over the reminder flow's states + acceptance criteria, a one-line smoke set tagged in the suite, an API-vuln scan (the payment-webhook endpoint's signature check, input validation, secret leakage), and — since `QUALITY.md` set a p95 latency target — a perf pass. A check fails (a slow query blows the latency budget); it routes the fix to `feature-developer`, then restarts the whole gauntlet until green. It writes `specs/QA-PLAN.md` and a GREEN `specs/QA-REPORT.md`.
+
+From there you stay in the build loop on a proven foundation: spec a feature, build it, repeat — the reuse registry making each pass a little faster than the last — and re-run `qa` to keep the gate green before each release.
 
 ## What you end up with
 
@@ -265,9 +307,11 @@ your-project/
 │   │   ├── preview/index.html       #   zero-build style-guide (opens with no app)
 │   │   └── BUNDLE.md                #   manifest + "adopt into a new project" recipe
 │   ├── DESIGN-BINDING.md            # wires the bundle to THIS project (if a binding was made)
-│   └── REUSE.md                     # registry of reusable code (grows as you build)
+│   ├── REUSE.md                     # registry of reusable code (grows as you build)
+│   ├── QA-PLAN.md                   # the durable test contract (selector map, suites, smoke set, NFR→check)
+│   └── QA-REPORT.md                 # the latest QA-gauntlet verdict (after qa runs)
 ├── poc/ … (throwaway mock-data spike — deletable)
-└── src/ … (scaffolded foundation + features, built to spec)
+└── src/ … (scaffolded foundation + features + tests, built to spec)
 ```
 
 ## Maintaining the specs

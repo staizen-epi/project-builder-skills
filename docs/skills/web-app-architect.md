@@ -12,7 +12,7 @@ Turns a vague "let's build a web app" into a concrete, reviewed `specs/ARCHITECT
 
 It works in **two modes**:
 
-- **No `ARCHITECTURE.md` → Bootstrap.** Reads the PRD first (Step 0), resolves the decision gates, generates the first architecture.
+- **No `ARCHITECTURE.md` → Bootstrap (interview).** Reads the PRD first (Step 0), then *interviews* you on what the gates need — confirming the gate-flipping workload answers (tenancy, metered APIs, async work) rather than guessing them, since they're expensive to rip out — and generates the first architecture once nothing gate-shaping is still worth asking about.
 - **`ARCHITECTURE.md` exists → Consult & maintain.** Treats it as binding; updates it (and its changelog) whenever a change introduces a new architectural decision.
 
 **Step 0 — read the PRD first.** If `specs/PRD.md` exists it derives project name, who logs in, roles, non-goals, constraints, integrations, data sensitivity, and scheduled work from it — so the questionnaire shrinks to only the genuine gaps. If `specs/QUALITY.md` exists it reads that too as the source of truth for non-functional *targets* and designs to them.
@@ -35,9 +35,9 @@ It works in **two modes**:
 |---|---|
 | `specs/ARCHITECTURE.md` | The durable source of truth for how the app is built. |
 
-Structured into: Overview · **Decisions (§2 — structural + workload, with the why)** · Tech stack · System architecture · Data model conventions · **Security & resilience (§6 — invariants + gated controls)** · Environments & release · **Build phases (§8 — Phase 0 first, with acceptance criteria)** · Open questions & assumptions · Changelog.
+Structured into: Overview · **Decisions (§2 — structural + workload, with the why)** · Tech stack · System architecture · Data model conventions · **Security & resilience (§6 — invariants + gated controls)** · Environments & release · **Testability conventions (§7a — testID scheme + test-env contract)** · **Build phases (§8 — Phase 0 first, with acceptance criteria)** · Open questions & assumptions · Changelog.
 
-It always includes the **invariants** (validate at every boundary, secrets in env, structured logging with redaction, TLS, tested backups, a CI gate, a staging step) and adds a gated section only when its condition is met.
+It always includes the **invariants** (validate at every boundary, secrets in env, structured logging with redaction, TLS, tested backups, a CI gate, a staging step) and the **testability conventions** (§7a — the `data-testid` scheme and a seeded, resettable test-environment contract, scaled to the app), and adds a gated section only when its condition is met. The testability conventions are the seam that makes the suite test-centered: [`feature-developer`](feature-developer.md) emits testIDs per the scheme and [`qa`](qa.md) derives its selectors from it.
 
 ## Dependencies & consumers
 
@@ -57,9 +57,10 @@ It always includes the **invariants** (validate at every boundary, secrets in en
 | [`ux-designer`](ux-designer.md) | the front-end stack the design is expressed in |
 | [`design-binder`](design-binder.md) | routes + front-end stack (which adapter to select) |
 | [`feature-spec`](feature-spec.md) | defers technical design here (captures *needs*, not schemas) |
-| [`feature-developer`](feature-developer.md) | how to build — conventions, invariants, gates, design principles |
+| [`feature-developer`](feature-developer.md) | how to build — conventions, invariants, gates, design principles, the **testID scheme** to emit |
+| [`qa`](qa.md) | the **testID scheme** (to derive selectors) + the **test-env contract** (to stand the app up) + testing stack |
 
-**Routes back to it:** any skill that surfaces a *technical-design* gap (a pattern the architecture doesn't cover) routes it here. The seam with [`quality-requirements`](quality-requirements.md) is **bidirectional** — an infeasible NFR target routes back there to renegotiate, and the two docs must never drift on a shared number.
+**Routes back to it:** any skill that surfaces a *technical-design* gap (a pattern the architecture doesn't cover) routes it here — including [`qa`](qa.md) when the testID scheme or test-env contract is missing. The seam with [`quality-requirements`](quality-requirements.md) is **bidirectional** — an infeasible NFR target routes back there to renegotiate, and the two docs must never drift on a shared number.
 
 ## Scope boundary
 

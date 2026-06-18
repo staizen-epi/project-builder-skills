@@ -12,20 +12,20 @@ Turns a rough product idea into a concrete, reviewed `specs/PRD.md` (Product Req
 
 It works in **two modes**:
 
-- **No `specs/PRD.md` → Bootstrap.** Asks a short set of high-impact questions, then writes the first PRD.
-- **`specs/PRD.md` exists → Consult & maintain.** Reads it as agreed scope; when you add, drop, or change a requirement it updates the relevant section *and* appends a dated Changelog entry.
+- **No `specs/PRD.md` → Bootstrap (interview).** The PRD doesn't exist yet, so it *interviews* you to capture intent — leading with the high-impact questions, then following up on your answers until no PRD-shaping assumption is still worth asking about — then writes the first PRD with the best data captured at that point.
+- **`specs/PRD.md` exists → Consult & maintain.** Reads it as agreed scope; when you add, drop, or change a requirement it updates the relevant section *and* appends a dated Changelog entry. (No interview here — it touches only what changed.)
 
-It asks only the five high-impact questions that genuinely define a product — **what & who · problem & success · must-have capabilities · non-goals · hard constraints & external systems** — and defaults everything else, recording each assumption. When unsure, it scopes *smaller* (tighter MVP, richer roadmap).
+On first creation it leads with the five high-impact questions that genuinely define a product — **what & who · problem & success · must-have capabilities · non-goals · hard constraints & external systems** — then draws out the rest (probing vague capabilities, confirming non-goals, surfacing the user or integration you didn't mention) before defaulting only the genuinely lower-impact remainder and recording each assumption. When unsure, it scopes *smaller* (tighter MVP, richer roadmap).
 
 ## Sample prompts
 
 - "I want to build a tool that lets freelancers track invoices and send reminders. Help me write a PRD."
 - "Let's spec out a new product: a reading tracker that syncs my Goodreads shelf."
 - "Define the requirements for an internal dashboard my team will use to track weekly OKRs."
-- "I want to build a booking app." *(vague start — it will ask the five high-impact questions first)*
+- "I want to build a booking app." *(vague start — it will interview you, starting from the five high-impact questions and following up until the product is clear)*
 - "Add a requirement to the PRD: let users export invoices to CSV." *(maintain mode)*
 
-> It will ask a few questions before writing — answer them, or reply "defaults" to let it assume sensible ones and note them.
+> On first creation it interviews you before writing — answer the questions (and the follow-ups), or reply "defaults" to let it assume sensible ones and note them. Once the PRD exists it stops interviewing and just maintains it.
 
 ## What it produces
 

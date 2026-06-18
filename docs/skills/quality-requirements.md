@@ -26,7 +26,7 @@ It works in **two modes**: bootstrap (write the first `QUALITY.md` from the PRD 
 - "How do we handle GDPR / privacy / personal data / data protection?"
 - "Make this production-grade." / "What are our security / accessibility / scale requirements?"
 
-> It asks four high-impact questions — personal-data handling & scope · availability/SLA · expected scale/load · extra compliance regimes — then defaults the rest from the PRD and the floor.
+> On first creation it *interviews* you, leading with four high-impact questions — personal-data handling & scope · availability/SLA · expected scale/load · extra compliance regimes — and probing the answers ("is that uptime a real promise or aspirational?", "EU users, and any health/payment data?") until no target-shaping answer is still worth asking about, then defaults the rest from the PRD and the floor.
 
 ## What it produces
 
@@ -49,10 +49,10 @@ Structured into: Overview & gating posture (states which dimensions are intentio
 | Consumer | Uses the targets for… |
 |---|---|
 | [`web-app-architect`](web-app-architect.md) | reads each target as a **constraint to design to**, records *how* in `ARCHITECTURE.md` |
-| `qa` *(planned)* | turns each `NFR-0X` into a runnable check (load test, axe scan, DR drill, retention-job test…) |
+| [`qa`](qa.md) | turns each `NFR-0X` `Verified by: qa` handoff into a runnable check (load test, axe scan, bounded API-vuln scan, retention-job test…) |
 
 **The architect seam is bidirectional:** forward, the architect designs to each target and records the mechanism; backward, an infeasible/expensive target routes *back here* to renegotiate. `QUALITY.md` owns the **target**, the architect owns the **mechanism**, and the two must never drift on a shared number.
 
 ## Scope boundary
 
-Owns non-functional **targets only.** Not product scope or features ([`product-requirements`](product-requirements.md) / [`feature-spec`](feature-spec.md)); not the technical *how* of meeting them ([`web-app-architect`](web-app-architect.md) — e.g. it sets "p95 < 150 ms", it does *not* specify Redis with a 60s TTL); not the visual language that realises accessibility ([`ux-designer`](ux-designer.md)); not the verification (the future `qa` skill).
+Owns non-functional **targets only.** Not product scope or features ([`product-requirements`](product-requirements.md) / [`feature-spec`](feature-spec.md)); not the technical *how* of meeting them ([`web-app-architect`](web-app-architect.md) — e.g. it sets "p95 < 150 ms", it does *not* specify Redis with a 60s TTL); not the visual language that realises accessibility ([`ux-designer`](ux-designer.md)); not the verification ([`qa`](qa.md) — it names the `Verified by` method per NFR but does not build the check).

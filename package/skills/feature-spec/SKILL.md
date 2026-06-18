@@ -34,7 +34,7 @@ If it's borderline between these, ask the user which size fits rather than defau
 
 **Check for `specs/features/<feature>.md` for the feature in question.**
 
-- **No spec → Bootstrap mode.** Anchor to the PRD (Step 0), gather the feature detail (Step 1), shape it (Step 2), write the file and update the PRD index (Step 3).
+- **No spec → Bootstrap mode (interview).** Anchor to the PRD (Step 0), **interview to capture the feature's intended behaviour** (Step 1) — extract from the PRD/conversation, then draw out the flow, rules, and edge cases until no behaviour-shaping assumption is still askable — shape it (Step 2), write the file and update the PRD index (Step 3).
 - **Spec exists → Consult & maintain mode.** Read it fully and treat it as the agreed feature behaviour. When the feature's requirements change, update the relevant section, add a Changelog entry, and keep the PRD index link accurate.
 
 ---
@@ -51,15 +51,15 @@ Read `specs/PRD.md` and pin down what this feature inherits, so you expand the P
 
 **Don't contradict or outgrow the PRD silently.** If specifying the feature surfaces new top-level scope — a new user type, a new integration, a new non-goal to revise, **or a sibling feature the PRD never declared** (e.g. this feature depends on "comments" but there's no PRD row for it) — route that back through the `product-requirements` skill to add/update the PRD row, then continue here. The PRD stays the source of truth for *what exists*; this spec details *how it behaves*. (A missing dependency you merely *note* in §8 isn't enough if it's genuinely a new feature — that's new scope and belongs in the PRD.)
 
-### Step 1 — Gather the feature detail
+### Step 1 — Interview to capture the feature's behaviour
 
-Expand from the PRD and conversation first; ask only the high-impact unknowns. For a single feature, three things define its behaviour — **if any are unclear, ask before writing:**
+The spec doesn't exist yet, so **enter interview mode** — this file becomes the source of truth the developer builds from, and an under-specified feature gets *invented* in code instead of decided here. Expand from the PRD and conversation first, then interview the user. For a single feature, three things define its behaviour — **if any are unclear, ask before writing:**
 
 - **The primary flow** — the happy-path sequence the user goes through, start to finish.
 - **The rules & limits** — validation, defaults, ordering, caps, permissions that govern it (e.g. "max 5 pinned items", "auto-saves after 600ms").
 - **The states & failure behaviour** — empty, loading, error, success, and boundary states, and what happens when something goes wrong (a dependency is down, input is invalid).
 
-Assume sensible defaults for lower-impact detail (exact copy, pixel-level layout, secondary flows, telemetry) and record assumptions in Open Questions rather than blocking. When unsure, specify less and mark it TBD — an honest open question beats an invented requirement.
+**Interview, don't just collect:** walk the flow with the user and probe the seams they skip — "what happens if they hit submit twice?", "what's on screen before any data loads?", "what's the cap, and what does hitting it look like?" Edge cases are exactly the intent that's easiest to lose and most expensive to discover in code. **Keep asking until no behaviour-shaping rule or state is still resolvable by asking**, then default only the genuinely lower-impact detail (exact copy, pixel-level layout, secondary flows, telemetry), recording assumptions in Open Questions rather than blocking. When unsure, specify less and mark it TBD — an honest open question beats an invented requirement.
 
 ### Step 2 — Shape the spec
 
@@ -124,7 +124,12 @@ Validation, limits, defaults, ordering, and permissions specific to this
 feature. Honour the PRD's constraints and non-goals.
 
 ## 7. Acceptance criteria
-Observable conditions that define "done" — what a reviewer checks.
+Observable conditions that define "done" — what a reviewer checks. Phrase each as
+a black-box-checkable behaviour and tie it to the requirement id(s) it proves
+(FR-0X.Y), so the qa skill can turn each criterion into an e2e assertion that
+traces back to the requirement. Don't specify selectors or testIDs here — the
+testID scheme is the architecture's (qa derives selectors from it); just keep the
+criteria observable and id-linked.
 
 ## 8. Dependencies
 Other features, data, or integrations this relies on or affects. Needs only —

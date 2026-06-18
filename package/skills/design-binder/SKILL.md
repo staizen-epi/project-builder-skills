@@ -52,7 +52,7 @@ If it's borderline, prefer the lighter option and note it — a binding is cheap
 
 **Check for `specs/DESIGN-BINDING.md`.**
 
-- **Absent → Bootstrap mode.** Read upstream (Step 0), confirm the few high-impact binding decisions (Step 1), build the map + theme + adapter selection (Step 2), realize the theme file and verify (Step 3), write the doc and hand off (Step 4).
+- **Absent → Bootstrap mode (interview where it's user-owned).** Read upstream (Step 0) — most of the binding *derives* from the bundle + PRD + architecture, so the interview is narrow: it focuses on the genuinely user-owned unknown, the **brand instance (theme)**, which the bundle can't supply. Confirm the high-impact binding decisions (Step 1) — interview on the brand until no theme-shaping value is still askable, and confirm (don't silently assume) the adapter and coverage inferences — build the map + theme + adapter selection (Step 2), realize the theme file and verify (Step 3), write the doc and hand off (Step 4).
 - **Present → Consult & maintain mode.** Read it fully and treat it as the agreed binding. When the project changes (a new screen/flow, a brand tweak, a stack change), update the relevant section, update the theme file and the adapter pointer to match, add a Changelog entry, and never let the binding, the theme, and the project drift apart.
 
 ---
@@ -69,11 +69,11 @@ Pull what's already settled so you *connect* rather than re-decide:
 
 Extract; don't re-ask what's settled. Don't restate the bundle's component definitions or the PRD's flows in the binding — *link* to them and map between them.
 
-### Step 1 — Confirm the high-impact binding decisions (ask only what matters)
+### Step 1 — Confirm the high-impact binding decisions (interview on the brand)
 
-Most of the binding is derivable. **The decisions worth confirming — only if undetermined by the PRD/architecture/bundle — are:**
+The binding doesn't exist yet, but most of it is *derivable* from the bundle + PRD + architecture — so unlike the upstream artifact skills, the interview here is **narrow and targeted at what only the user can supply: the brand instance.** Everything else you derive and *confirm* rather than interrogate. **The decisions worth resolving — only if undetermined by the PRD/architecture/bundle — are:**
 
-- **The brand instance (theme).** The concrete value(s) for the bundle's semantic roles in *this* project — at minimum the primary/brand colour, and dark-mode brand values if the bundle is themed. If the PRD states the brand, don't ask; just record it. (Everything not overridden inherits the bundle's neutral default — that's the point.)
+- **The brand instance (theme).** The concrete value(s) for the bundle's semantic roles in *this* project — at minimum the primary/brand colour, and dark-mode brand values if the bundle is themed. If the PRD states the brand, don't ask; just record it. **If it doesn't, interview** — this is the project-specific intent the bundle deliberately can't carry, so draw it out (the brand colour, whether dark mode is in play, any secondary/accent the flows imply) rather than defaulting to the bundle's neutral and producing an unbranded app. (Everything genuinely *not* overridden inherits the bundle's neutral default — that's the point.)
 - **The stack adapter.** Which bundle adapter the architecture's stack consumes (`adapters/tailwind.tokens.js`, `adapters/tokens.ts`, or `tokens.css` directly). If `ARCHITECTURE.md` names the stack, derive it — only ask if the stack is genuinely undecided or the bundle has no matching adapter (then it's a gap to route, not a question to default).
 - **Coverage scope.** Whether to map *every* screen now or just the Phase-0/hero screens, deferring the rest. Default to **the screens that exist or are imminent** (don't map flows the PRD only gestures at); note deferred screens as ⚠️ TBD.
 

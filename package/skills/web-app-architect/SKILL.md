@@ -13,7 +13,7 @@ The single output of this skill is **`specs/ARCHITECTURE.md`** (the spec family 
 
 **Check for `specs/ARCHITECTURE.md` before doing anything else.**
 
-- **No `ARCHITECTURE.md` → Bootstrap mode.** Gather what the gates need (below), resolve the decision gates, then generate the first `ARCHITECTURE.md` using the output template. Do not start writing app code until the user has seen and approved the architecture.
+- **No `ARCHITECTURE.md` → Bootstrap mode (interview).** **Interview the user on what the gates need** (Step 1) — extract from the PRD/QUALITY, then draw out the workload and structural decisions until no architecture-shaping assumption is still askable — resolve the decision gates, then generate the first `ARCHITECTURE.md` using the output template. Do not start writing app code until the user has seen and approved the architecture.
 - **`ARCHITECTURE.md` exists → Consult & maintain mode.** Read it fully and treat it as binding. Build in line with it. When a change introduces a new architectural decision (a new dependency, a new external integration, a tenancy or auth change), update `ARCHITECTURE.md` in the same change and append to its changelog. Never let the code and the doc silently diverge.
 
 ---
@@ -48,12 +48,12 @@ If there is **no** `specs/PRD.md`, proceed from the conversation as usual. For a
 
 **Also read `specs/QUALITY.md` if it exists (the non-functional source of truth).** It is written by the `quality-requirements` skill and owns the **measurable non-functional targets** (`NFR-0X`): availability/SLA, performance budgets, scale/throughput, security/tenant-isolation, accessibility level, observability, DR (RPO/RTO), and data-protection/GDPR obligations. Treat each target as a **constraint the architecture must design to**, and record *how* you meet it in §6 (and §4/§5/§7 where relevant) — ideally citing the `NFR-0X` id. The seam is **bidirectional**: if a target is infeasible or disproportionately expensive, **don't silently design under or over it** — surface the cost and route the decision back to `quality-requirements` to renegotiate; that skill records the agreed target. `QUALITY.md` owns the *target*, this skill owns the *mechanism* — never let the two drift on the same number.
 
-### Step 1 — Gather what the gates need
+### Step 1 — Interview to capture what the gates need
 
-Your goal is enough information to resolve the decision gates in Step 2 — not to fill out a form. Long forms are friction; most apps only hinge on a handful of decisions. Work in this order:
+`ARCHITECTURE.md` doesn't exist yet, so **enter interview mode** — this becomes the binding source of truth for the whole build, and a gate guessed wrong here (multi-tenancy, a queue, the wrong DB paradigm) is expensive to rip out later. Your goal is enough to resolve the decision gates in Step 2 *from the user's actual intent*, not a guess and not a long form. Work in this order:
 
 1. **Extract first.** Pull every answer the PRD (Step 0) and the current conversation already imply, and treat it as provisional.
-2. **Ask only the high-impact decisions that are still unknown.** Two groups reshape the whole architecture; the rest only tune it. **If any of these are undetermined, ask before generating — never silently guess them:**
+2. **Interview on the high-impact decisions still unknown, then follow up.** Two groups reshape the whole architecture; the rest only tune it. Probe the answers that flip a gate — "many independent orgs, or one business with staff logins?" (tenancy), "could a runaway loop hit a paid API and cost real money?" (metered), "does anything need to outlive the request or run on a schedule?" (async) — since these are exactly the assumptions that, left unasked, over- or under-build the architecture. **If any of these are undetermined, ask before generating — never silently guess them. Keep interviewing until no gate-flipping answer is still askable:**
 
    *Workload gates (turn sections on/off):*
    - **Tenancy** — one user / one organization / multi-tenant (many independent orgs)?
@@ -70,7 +70,7 @@ Your goal is enough information to resolve the decision gates in Step 2 — not 
 3. **Assume sensible defaults for everything else** and record each assumption in the Decisions section rather than blocking on it. Generating a draft from stated defaults and letting the user correct it beats gating the whole output behind a long questionnaire.
 4. **When genuinely unsure, default to the simpler gate (off).** It is far cheaper to add scaffolding later than to rip out multi-tenancy, a queue, or a cache the app never needed. Do not let a default nudge an app toward heavier architecture than its description warrants (e.g. most "booking apps" are single-business, not marketplaces).
 
-Present the high-impact questions as one short block with defaults shown, so the user can reply "defaults" and move on. Explain briefly why you're asking when it isn't obvious. For the structural decisions, **state the default you'd pick and ask only for confirmation** when the PRD doesn't settle them — don't pose them as open-ended; a wrong structural default is expensive to undo, so it's worth one confirming line.
+Open with the high-impact questions as one short block with defaults shown, so the user can reply "defaults" and move on, then interview from their answers. Explain briefly why you're asking when it isn't obvious. For the structural decisions, **state the default you'd pick and ask only for confirmation** when the PRD doesn't settle them — don't pose them as open-ended; a wrong structural default is expensive to undo, so it's worth one confirming line. On first creation, treat "defaults" as permission to proceed on the *low-impact* tail — still confirm the gate-flipping workload answers rather than assuming them silently.
 
 **High-impact — ask if unknown:** *workload gates:* tenancy · data sensitivity · metered APIs · async/scheduled work. *structural:* FE/BE topology · codebase layout (mono/poly-repo) · monolith vs microservices · API protocol (REST/GraphQL/gRPC) · database paradigm (SQL vs NoSQL + engine).
 
@@ -125,6 +125,33 @@ These belong in every web app's architecture regardless of answers, because skip
 - **Backups with a tested restore** for any persistent datastore. An untested backup is not a backup.
 - **A CI gate before merge/deploy:** lint, typecheck, tests, dependency/secret scanning. Treat a red gate as blocking.
 - **At least a staging step before production.** Nothing ships straight to prod unreviewed.
+- **Testability conventions** so the app can be tested black-box: a **testID scheme** (every interactive/meaningful element gets a function-named `data-testid`, so it's grabbable by what it does rather than by deep DOM/XPath) and a **test-environment contract** (below). The whole suite is test-centered — `feature-developer` tags the actionable surface per the scheme and `qa` derives its selectors from the same scheme — so this convention is not optional polish; it's what spares QA from parsing the page and keeps the e2e suite stable.
+
+## Testability conventions (own these — qa and feature-developer consume them)
+
+Two small but load-bearing conventions live in `ARCHITECTURE.md` because they are *build conventions* (the same concept as the ID strategy or naming): how the built app is made **testable**. The architect defines them once; `feature-developer` emits per them; `qa` consumes them.
+
+**1. The testID scheme.** A single, predictable `data-testid` convention so every meaningful element can be grabbed by **what it does**, not by its position in the DOM. The primary goal is *function-named, unique selectors*: QA should reach the quick-search box, the download button, or the customize button by a stable name that says what the element is for — so it rarely has to parse the whole page or write deep XPaths. (Traceability to the requirement is a welcome *secondary* benefit, not the headline.)
+
+- **Shape:** pick one and state it — e.g. `data-testid="<feature>-<function>[-<id>]"`, where:
+  - `<feature>` ties to the feature/area (so testids are unique across the app and grouped by feature), and
+  - `<function>` is **what the element does**, in action/role terms — not a structural or layout label. Good: `download-button`, `quick-search-input`, `customize-button`, `invoice-row`, `status-filter`, `confirm-delete-button`. Avoid: `section-3`, `div-wrapper`, `col-2`.
+  - `<id>` is appended for **elements in a collection** so each instance is uniquely addressable: `invoices-invoice-row-{invoiceId}`, `invoices-download-button-{invoiceId}`.
+- **Coverage — name the interactive surface by function.** `feature-developer` tags **every actionable control and every meaningful data element**: buttons/links that do something, inputs and search boxes, toggles/switches, dropdowns and menu items, tabs, modals/dialogs, and the key data containers a test asserts on (a row, a card, a total). The rule is *function-named coverage of the interactive/meaningful surface*, **not** "only the elements a test happens to need today" — proactively labeling them is what spares QA the DOM hunting.
+- **Uniqueness.** A given `data-testid` resolves to exactly one element (or, for a collection, one per `{id}`). If two elements would collide, the `<function>` (or the `{id}`) must distinguish them — that's the whole point of the contract.
+
+`qa` then **derives** its selectors from this scheme rather than scraping the DOM, and builds its selector map from it. State the scheme here; `feature-developer` applies it; `qa` consumes it.
+
+**2. The test-environment contract.** A runnable, **seeded**, **resettable** target so black-box tests are deterministic and idempotent. Always required, but **scale its depth to the app** (gating, not templates):
+
+| App type | Test-env contract |
+|---|---|
+| Multi-tenant SaaS | ≥2 seeded tenants + a seeded user per role (for cross-tenant/RBAC tests) + base URL + a **reset hook** |
+| Single-user / internal tool | Base URL + one seeded user + a **reset/teardown hook** |
+
+The **reset hook is always required** regardless of app size — it's what gives every run the same starting state, which is what makes `qa`'s "restart the gauntlet until green" sound. Define *how* the target is stood up and seeded and reset (a seed script, a fixtures command, an ephemeral DB per run — your choice of mechanism), and where (a dedicated test profile/env). Don't force multi-tenant seeding onto a single-user tool; do always give it a reset hook.
+
+These two feed `specs/QA-PLAN.md`: `qa` reads the scheme to build its selector map and stands the app up against the contract. If either is absent when `qa` runs, `qa` routes back here to add it — so define both at architecture time.
 
 ## Default stack (recommend, don't impose)
 
@@ -146,7 +173,7 @@ The architecture should prescribe *how* the build proceeds, not just its shape:
 - **Phase 0 before features.** Scaffold the project, auth, tenancy primitives, and the CI gate *first*. Features build on a foundation, not the reverse.
 - **Vertical slices, MVP-first.** Ship one end-to-end path working before broadening. Order phases so each delivers something demonstrable.
 - **Acceptance criteria per phase.** Each phase states what "done" means in observable terms.
-- **A QA gate before production.** If any check fails, fix it and re-run the full gate before deploying.
+- **A QA gate before production.** If any check fails, fix it and re-run the full gate before deploying. The `qa` skill owns this gauntlet (black-box e2e/smoke/API-vuln/perf + each `QUALITY.md` `NFR-0X` check), consuming the §7a testability conventions; it complements — doesn't replace — the CI gate above.
 
 ---
 
@@ -194,6 +221,19 @@ Each item states the requirement, not just the intent.
 
 ## 7. Environments & release
 Local → staging → production, the CI/QA gate, and the deploy flow.
+
+## 7a. Testability conventions
+The two conventions qa and feature-developer consume (always include):
+- **testID scheme** — a `data-testid` convention so every interactive/meaningful
+  element is grabbable by **what it does**, named by function not position (e.g.
+  `data-testid="<feature>-<function>[-<id>]"` → `invoices-download-button`,
+  `invoices-quick-search-input`, `invoices-invoice-row-{id}`). feature-developer
+  tags the actionable surface (buttons, inputs, search, toggles, menus, key data
+  elements) per this; qa derives selectors from it instead of scraping the DOM.
+- **test-environment contract** — a seeded, resettable target, scaled to the app
+  (SaaS: ≥2 tenants + per-role users + reset hook; single-user/internal: base
+  URL + one user + reset/teardown hook). The reset hook is always required (it
+  makes qa's gauntlet idempotent). State how it's stood up, seeded, and reset.
 
 ## 8. Build phases
 Phase 0 (foundation) first, then vertical slices. Each phase lists its

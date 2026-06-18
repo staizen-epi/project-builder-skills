@@ -34,7 +34,7 @@ A feature can be **built partially** when part of it is blocked — it builds th
 
 | Output | Description |
 |---|---|
-| code + tests | The vertical slice — every state the spec defines, honouring every invariant and ON gate, with tests for the happy path + edge/failure cases. |
+| code + tests | The vertical slice — every state the spec defines, honouring every invariant and ON gate, with tests for the happy path + edge/failure cases. Every interactive/meaningful element carries a **function-named** `data-testid` per the architecture's testID scheme (`download-button`, `quick-search-input`, …) so [`qa`](qa.md) can grab it by what it does, not by deep XPath. |
 | `specs/REUSE.md` | The reuse registry — new reusables registered with path + one-line purpose; drifted lines reconciled. |
 | changelog updates | The feature spec's changelog (implemented; criteria verified); `ARCHITECTURE.md` only if a decision actually changed. |
 
@@ -54,7 +54,7 @@ A feature can be **built partially** when part of it is blocked — it builds th
 
 > `/poc/` is ignored entirely — its learnings already reached the build via the scaffolder.
 
-**Consumed by:** the next loop iteration reads `REUSE.md`; otherwise this is the end of the pipeline — it produces the running feature.
+**Consumed by:** the next loop iteration reads `REUSE.md`; [`qa`](qa.md) tests the running feature black-box and derives its selectors from the testIDs this skill emits. Otherwise this is the end of the build loop — it produces the running feature.
 
 **Routes back — never improvises scope:** a *behaviour* gap → [`feature-spec`](feature-spec.md); a *technical-design* gap → [`web-app-architect`](web-app-architect.md); a *missing component/token* → [`ux-designer`](ux-designer.md); a *missing/wrong screen mapping or theme value* → [`design-binder`](design-binder.md).
 

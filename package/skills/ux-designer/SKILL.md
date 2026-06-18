@@ -88,7 +88,7 @@ If it's borderline, ask the user rather than defaulting to a full system. When u
 
 **Check for `specs/DESIGN.md`.**
 
-- **Absent → Bootstrap mode.** Read upstream (Step 0), gather the high-impact design direction (Step 1), define the system (Step 2), realize it as the portable bundle — neutral tokens, optional adapters, a buildless preview, and `BUNDLE.md` (Step 3) — write the doc and hand off (Step 4).
+- **Absent → Bootstrap mode (interview).** Read upstream (Step 0), **interview to capture the design direction** (Step 1) — extract from the PRD/PoC/any visual reference, then draw out brand, mood, and theming until no system-shaping assumption is still askable — define the system (Step 2), realize it as the portable bundle — neutral tokens, optional adapters, a buildless preview, and `BUNDLE.md` (Step 3) — write the doc and hand off (Step 4). *(When a visual reference is provided, Step 1.5 extraction substitutes for most of the interview — the reference already states the intent.)*
 - **Present → Consult & maintain mode.** Read it fully and treat it as the agreed design language. When the design changes (a new token, a new component, a revised pattern), update the relevant section, update the source-of-truth tokens, regenerate adapters and the preview to match, add a Changelog entry, and never let the doc, the tokens, the adapters, and the rendered system drift apart — or break the bundle's portability.
 
 ---
@@ -106,15 +106,15 @@ Pull what's already settled so you design *for this product*, not in the abstrac
 
 Extract; don't re-ask what's settled. Don't restate the PRD or architecture in DESIGN — link to them.
 
-### Step 1 — Gather the design direction (ask only what matters)
+### Step 1 — Interview to capture the design direction
 
-Most of a design system is defaulted from the persona, the stack, and good practice. **The high-impact decisions worth asking — only if undetermined by the PRD/PoC/conversation — are:**
+`specs/DESIGN.md` doesn't exist yet, so **enter interview mode** (unless a visual reference was provided — then Step 1.5 *extracts* the direction and the interview shrinks to confirming what the reference doesn't settle). The bundle becomes the durable visual language every screen inherits, and "mood" is exactly the kind of intent that's cheap to ask and expensive to guess wrong. Most of a design system is defaulted from the persona, the stack, and good practice, but the *direction* is worth drawing out. **The high-impact decisions to interview on — only if undetermined by the PRD/PoC/conversation — are:**
 
-- **Brand & mood** — the core colour(s) and the overall feel (e.g. "calm and minimal", "dense and data-heavy", "playful"). This anchors the whole palette and type choices. If the PRD or PoC settles it, don't ask.
+- **Brand & mood** — the core colour(s) and the overall feel (e.g. "calm and minimal", "dense and data-heavy", "playful"). This anchors the whole palette and type choices. If the PRD or PoC settles it, don't ask — otherwise *do* ask and probe ("who's the audience picturing when they open this — a clinician at a workstation, or a consumer on a phone?"), because a defaulted mood produces a generic system nobody asked for.
 - **Theming** — is dark mode (or multi-theme) a requirement, or light-only? It changes how tokens are structured, so it's worth knowing up front.
 - **Accessibility floor** — the target (e.g. WCAG 2.1 AA) if the PRD's domain implies a regulated or broad-audience requirement; otherwise default to AA as a sane baseline.
 
-Assume sensible defaults for everything else and record them in the doc:
+Interview until no system-shaping direction is still askable, then assume sensible defaults for everything else and record them in the doc:
 
 - **Type & spacing scales** — default to a conventional modular type scale and an 8pt-based spacing scale unless the brand/density calls for otherwise.
 - **Component primitives** — default to the architecture's chosen primitive library if it has one; otherwise a minimal hand-rolled set sized to the flows. Don't inventory components no flow needs.

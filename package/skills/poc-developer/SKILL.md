@@ -55,7 +55,7 @@ State it plainly, e.g. *"Real app detected — running in brownfield 'quick resp
 
 **Check for `/poc/` and `specs/POC-NOTES.md`.**
 
-- **Absent → Bootstrap.** Pick the slice, build the mock-data prototype, write the hints.
+- **Absent → Bootstrap.** Pick the slice — **interview enough to nail *which* slice and what "it works" looks like** before building (a spike aimed at the wrong slice wastes the whole effort) — build the mock-data prototype, write the hints. The interview is deliberately narrow here: the slice/change is the one thing worth blocking on; everything else is defaulted (the PoC is throwaway, so an imperfect default is cheap to redo).
 - **Present → Iterate.** Read `POC-NOTES.md` first. Extend or revise the spike (add a screen, try an interaction), keep it mock-only, update `POC-NOTES.md` + its changelog. Don't let the notes drift from what the PoC actually shows. (A brownfield iterate may add a second targeted change; keep each disposable.)
 
 ---
@@ -65,8 +65,8 @@ State it plainly, e.g. *"Real app detected — running in brownfield 'quick resp
 ### G0 — Read upstream (if present)
 Pull from `ARCHITECTURE.md` / `PRD.md`: the **core user flow** worth previewing, the **persona**, the **intended stack/UX direction**, and any **non-goals** bounding the spike. Extract; don't re-ask what's settled.
 
-### G1 — Pick the slice (ask only what matters)
-A PoC that tries to show everything shows nothing. **The one high-impact decision: which single slice makes the idea click?** If upstream/conversation don't make it obvious, ask — it's the only thing worth blocking on. Usually the **hero flow**: the core value loop (e.g. "capture an invoice → see the reminder schedule", not the settings page).
+### G1 — Pick the slice (interview on the one thing that matters)
+A PoC that tries to show everything shows nothing. **The one high-impact decision: which single slice makes the idea click?** If upstream/conversation don't make it obvious, **interview** — it's the only thing worth blocking on, so draw it out: which moment of the product is the user actually trying to feel, and what would make them say "yes, that's it"? Usually the **hero flow**: the core value loop (e.g. "capture an invoice → see the reminder schedule", not the settings page). Pin that before building; default everything else.
 
 Default everything else and record it in the notes:
 - **Fidelity** — clickable UI with mock data (front-end only, in-memory). Lower (static mockup) or higher (a fake API layer) only if asked or the flow demands it.
@@ -100,8 +100,8 @@ The user wants to see one **targeted change** working without committing to buil
 - **Read the relevant *real* code as context.** Find the surface the change plugs into and learn its **real names and shapes**: the component(s) it sits next to, the data/types it consumes, the function/hook/endpoint it would call, the routing or layout slot it lands in. You are reading to *understand the seam*, not to lift code.
 - Identify the **integration seam**: the single boundary where the new change meets the existing app (a prop, a hook, an API call, a route). This is the thing you will mock, and the thing the notes will name.
 
-### B1 — Pick the change (ask only what matters)
-**The one high-impact decision: what single change is being proven, and what does "it works" look like?** Keep it to one targeted behaviour against one seam. If the change is sprawling, narrow it to the slice that makes the idea click — and note the rest as out of scope.
+### B1 — Pick the change (interview on the one thing that matters)
+**The one high-impact decision: what single change is being proven, and what does "it works" look like?** If it isn't already crisp, **interview** until it is — what behaviour changes, against which seam, and what observable outcome counts as proof — because a brownfield spike aimed at a fuzzy "it works" proves nothing and hands off a fuzzy seam. Keep it to one targeted behaviour against one seam. If the change is sprawling, narrow it to the slice that makes the idea click — and note the rest as out of scope.
 
 Default everything else:
 - **Strategy — read-as-context, mock the seam (default).** Build the change in `/poc` against a mocked version of the real seam (mock the hook/endpoint/props using the *real names and shapes* you learned). Do **not** copy real components into `/poc`; re-create only the thin surface needed to host the change.

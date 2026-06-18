@@ -27,7 +27,7 @@ It works in **two modes**: bootstrap (anchor to the PRD, gather the detail, writ
 - "What are all the states for X?"
 - "The reminder timing changed to 3 and 7 days before due." *(maintain mode)*
 
-> It asks about the three things that define a feature's behaviour if any are unclear — the primary flow · the rules & limits · the states & failure behaviour — and defaults lower-impact detail (copy, layout, telemetry).
+> On first creation it *interviews* you about the three things that define a feature's behaviour — the primary flow · the rules & limits · the states & failure behaviour — walking the flow and probing the edge cases you skip (double-submit, empty state, hitting the cap) until no behaviour-shaping rule is still worth asking about, then defaults lower-impact detail (copy, layout, telemetry).
 
 ## What it produces
 

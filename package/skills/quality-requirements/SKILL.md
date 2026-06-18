@@ -1,6 +1,6 @@
 ---
 name: quality-requirements
-description: Defines the NON-FUNCTIONAL requirements for a web app — the quality attributes the PRD's functional requirements don't capture (performance, scalability, availability/SLA, security, reliability, maintainability, accessibility, observability) plus a first-class data-protection/GDPR section — and writes them as measurable, traceable targets in specs/QUALITY.md. Use this after a PRD exists and alongside architecture, whenever the user wants to "set quality targets", "define NFRs / non-functional requirements", "what are our performance/availability/uptime targets", "set an SLA/SLO", "how do we handle GDPR / privacy / personal data / data protection", "what are our security/accessibility/scale requirements", or "make this production-grade". It is the SOURCE OF TRUTH for non-functional targets: the web-app-architect reads QUALITY.md as constraints to design to, and may negotiate an infeasible target back here. It owns target-setting only — not the technical HOW of meeting them (web-app-architect), not product scope or features (product-requirements / feature-spec). Each requirement gets a stable NFR-0X id and a measurable target; turning targets into runnable checks is deferred to the future qa skill. Requires specs/PRD.md as its parent. For a SaaS it applies a baseline quality floor; for a trivial/internal tool it gates most dimensions off.
+description: Defines the NON-FUNCTIONAL requirements for a web app — the quality attributes the PRD's functional requirements don't capture (performance, scalability, availability/SLA, security, reliability, maintainability, accessibility, observability) plus a first-class data-protection/GDPR section — and writes them as measurable, traceable targets in specs/QUALITY.md. Use this after a PRD exists and alongside architecture, whenever the user wants to "set quality targets", "define NFRs / non-functional requirements", "what are our performance/availability/uptime targets", "set an SLA/SLO", "how do we handle GDPR / privacy / personal data / data protection", "what are our security/accessibility/scale requirements", or "make this production-grade". It is the SOURCE OF TRUTH for non-functional targets: the web-app-architect reads QUALITY.md as constraints to design to, and may negotiate an infeasible target back here. It owns target-setting only — not the technical HOW of meeting them (web-app-architect), not product scope or features (product-requirements / feature-spec). Each requirement gets a stable NFR-0X id and a measurable target; turning targets into runnable checks is owned by the qa skill (each NFR names a Verified by: qa handoff). Requires specs/PRD.md as its parent. For a SaaS it applies a baseline quality floor; for a trivial/internal tool it gates most dimensions off.
 ---
 
 # Quality Requirements
@@ -9,13 +9,13 @@ This skill turns "make it production-grade" into a concrete, reviewed `specs/QUA
 
 It is the **source of truth for non-functional targets**. The `web-app-architect` reads those targets as constraints and designs to meet them; this skill does **not** decide *how* they're met (that's the architect's job) — it decides *what* must be true and *how well*, with a measurable number on each. Keeping that seam clean is what lets the two skills negotiate instead of overwrite.
 
-The single output is **`specs/QUALITY.md`**, with stable **`NFR-0X`** ids so the architect and the future `qa` skill can trace each target back to its requirement.
+The single output is **`specs/QUALITY.md`**, with stable **`NFR-0X`** ids so the architect and the `qa` skill can trace each target back to its requirement.
 
 ## Two modes
 
 **Check for `specs/QUALITY.md` before doing anything else.**
 
-- **No `specs/QUALITY.md` → Bootstrap mode.** Read the PRD (Step 0), apply the gating posture (Step 2), gather only the high-impact unknowns (Step 1), then write the first `QUALITY.md` from the template. Present it before architecture is finalised so the architect can design to it.
+- **No `specs/QUALITY.md` → Bootstrap mode (interview).** Read the PRD (Step 0), apply the gating posture (Step 2), and **interview the user on the high-impact non-functional unknowns** (Step 1) — extract from the PRD, then draw out the targets until no document-shaping assumption is still askable — then write the first `QUALITY.md` from the template. Present it before architecture is finalised so the architect can design to it.
 - **`specs/QUALITY.md` exists → Consult & maintain mode.** Read it fully and treat its targets as binding. When a target changes (the architect pushed back, scale grew, a compliance regime was added), update the relevant `NFR-0X` **and** append a dated Changelog entry in the same change. When the architect or `qa` skill needs a target, read it from here.
 
 ---
@@ -40,12 +40,12 @@ Map PRD content to quality inputs:
 
 If the PRD names a compliance regime or an uptime promise, treat it as settled and record it; don't re-litigate it.
 
-### Step 1 — Gather what the targets need
+### Step 1 — Interview to capture the quality targets
 
-The goal is enough to set measurable targets, not a long form. Most apps hinge on four non-functional unknowns. Work in this order:
+`specs/QUALITY.md` doesn't exist yet, so **enter interview mode** — these targets become binding constraints the architect designs to and `qa` verifies, so a number invented here gets *built* (or built around) at real cost. The goal is measurable targets grounded in the user's actual intent, not a long form and not a guess. Most apps hinge on four non-functional unknowns. Work in this order:
 
 1. **Extract first.** Pull every target the PRD (Step 0) and the conversation already imply; treat as provisional.
-2. **Ask only the high-impact unknowns.** **If any of these four are undetermined, ask before generating — never silently invent them** (they fork the whole document and are expensive to get wrong):
+2. **Interview on the high-impact unknowns, then follow up.** **If any of these four are undetermined, ask before generating — never silently invent them** (they fork the whole document and are expensive to get wrong). Probe past the first answer — "99.9% uptime — is that a real promise to customers or aspirational?", "EU users? then GDPR's depth changes; any health or payment data in there?" — because the difference between a stated and an assumed target here is the difference between an architecture that fits and one that's mis-built. **Keep interviewing until no target-shaping answer is still askable:**
    - **Personal-data handling & scope** — does it process personal data, which categories, and whose (EU residents)? Gates the entire GDPR section's depth. Note specifically whether any is **special-category (health, biometric, etc.) or payment-card data** — that auto-raises the depth and triggers a DPIA (Step 4), so detect it here rather than waiting.
    - **Availability / SLA target** — what uptime is promised (99.9% vs best-effort)? Drives HA, DR, and cost.
    - **Expected scale / load** — tenants, concurrent users, data volume? Gates scalability and throughput budgets vs "small for now".
@@ -53,7 +53,7 @@ The goal is enough to set measurable targets, not a long form. Most apps hinge o
 3. **Default everything else from the PRD + the gating floor** (Step 2) and record each assumption rather than blocking. A draft the user corrects beats an interrogation.
 4. **When genuinely unsure, default to the lighter target.** A target you can tighten later is cheaper than one the architecture over-built for. But do not drop below the SaaS floor (Step 2) for a SaaS.
 
-Present the four high-impact questions as one short block with the defaults shown, so the user can reply "defaults" and move on.
+Open with the four high-impact questions as one short block with the defaults shown (so the user can reply "defaults" and move on), then interview from their answers — but on first creation don't let "defaults" skip past a target the user clearly has an opinion on; offer it and confirm. Default only the genuinely lower-impact remainder after the interview, recording each assumption.
 
 **High-impact — ask if unknown:** personal-data handling & scope · availability/SLA target · expected scale/load · extra compliance regimes.
 
@@ -97,7 +97,7 @@ A gate that's warranted but light goes in minimal form (e.g. "single-region now;
 Per the suite's "prove it" principle, an NFR that can't be checked is noise. **Every `NFR-0X` must carry a measurable target** — a number, a threshold, a conformance level, or a yes/no condition — not an adjective.
 
 - Reject vague targets. "Should be fast" → "p95 API latency < 200 ms at 100 concurrent users." "Highly available" → "99.9% uptime measured monthly, excluding scheduled maintenance."
-- **Verification is deferred, not skipped.** This skill sets the *target*; the future **`qa` skill** owns turning each target into a runnable check (load test, axe scan, pen-test, retention-job test, chaos/DR drill). Note that handoff on each NFR (a `Verified by:` line pointing at qa) but do **not** author the test here.
+- **Verification is deferred, not skipped.** This skill sets the *target*; the **`qa` skill** owns turning each target into a runnable check (load test, axe scan, bounded API-vuln scan, retention-job test, chaos/DR drill). Note that handoff on each NFR (a `Verified by:` line pointing at qa) but do **not** author the test here.
 - Where a number genuinely doesn't fit, use a bounded acceptance condition (e.g. "all PII fields redacted in logs — verifiable by log inspection"), never an unbounded adjective.
 
 ### Step 4 — The data-protection / GDPR section (gated on personal data)
@@ -194,7 +194,7 @@ Never let the two drift: if `ARCHITECTURE.md` states a different number than `QU
 - **Not product scope or features.** What the product does and its functional requirements live in `specs/PRD.md` (`product-requirements`); detailed feature behaviour in `specs/features/` (`feature-spec`). If a "quality" discussion is really a missing capability, route it there.
 - **Not the technical HOW.** Stack, system design, the erasure pipeline, the cache, the isolation mechanism — all `web-app-architect`. This skill sets the *target*; the architect picks the *mechanism*.
 - **Not the visual/interaction language.** Accessibility *targets* (WCAG level) live here; the design system that realises them is `ux-designer`.
-- **Not the verification.** Authoring/running the checks that prove each target is the future `qa` skill. This skill names the verification method per NFR but does not build it.
+- **Not the verification.** Authoring/running the checks that prove each target is the `qa` skill. This skill names the verification method per NFR but does not build it.
 - **One concept, one owner.** This skill owns non-functional *targets*. It links and traces to the others; it never duplicates their files.
 
 ## Maintenance mode rules

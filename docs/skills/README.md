@@ -15,5 +15,6 @@ One page per skill — how it works, sample prompts, what it produces, and who d
 | [`web-app-scaffolder`](web-app-scaffolder.md) | 3 · stand up the foundation | Phase-0 foundation, proven → your codebase |
 | [`feature-spec`](feature-spec.md) | 4a · build loop (spec) | One feature in depth → `specs/features/<feature>.md` |
 | [`feature-developer`](feature-developer.md) | 4b · build loop (build) | A tested vertical slice → code + tests + `specs/REUSE.md` |
+| [`qa`](qa.md) | 5 · verify & gate | Black-box gauntlet + NFR checks, owns the gate → `specs/QA-PLAN.md` + `specs/QA-REPORT.md` |
 
-**Pipeline:** PRD → architecture → *(optional)* quality → *(optional)* PoC → *(optional)* design system → design binding → scaffold → build loop (spec → build, repeat).
+**Pipeline:** PRD → architecture → *(optional)* quality → *(optional)* PoC → *(optional)* design system → design binding → scaffold → build loop (spec → build, repeat) → qa (verify & gate before release).

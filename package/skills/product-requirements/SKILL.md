@@ -15,28 +15,29 @@ The single output is **`specs/PRD.md`**. It is the durable source of truth for p
 
 **Check for `specs/PRD.md` before doing anything else.**
 
-- **No `specs/PRD.md` → Bootstrap mode.** Gather requirements (below), shape them, create the `specs/` folder if it doesn't exist, and write the first `specs/PRD.md`. Do not move on to architecture or code until the user has seen and approved it.
+- **No `specs/PRD.md` → Bootstrap mode (interview).** The artifact doesn't exist yet, so **interview the user to capture intent** (Step 1) — extract what's known, then draw out the rest until no PRD-shaping assumption is still askable — shape the requirements, create the `specs/` folder if it doesn't exist, and write the first `specs/PRD.md`. Do not move on to architecture or code until the user has seen and approved it.
 - **`specs/PRD.md` exists → Consult & maintain mode.** Read it fully and treat it as the agreed scope. When the user adds, drops, or changes a requirement, update the relevant section **and** append a dated Changelog entry in the same change. When a downstream skill (architect, scaffolder) needs product context, read it from here.
 
 ---
 
 ## Bootstrap mode
 
-### Step 1 — Gather what the requirements need
+### Step 1 — Interview to capture the product intent
 
-The goal is a shared understanding of the product, not a filled-in form. Most products hinge on a handful of decisions; get those right and assume sensible defaults for the rest. Work in this order:
+`specs/PRD.md` does not exist yet, so **enter interview mode.** This document becomes the highest-level source of truth for the whole build — a thin PRD silently corrupts every stage downstream — so it is worth a real conversation to capture the best possible intent *now*, at creation. The goal is a shared understanding of the product, not a filled-in form, and not a one-shot guess. Work in this order:
 
 1. **Extract first.** Pull everything the conversation already states or implies and treat it as provisional.
-2. **Ask only the high-impact items that are still unknown.** Five answers define the product; the rest only add detail. **If any of these five are undetermined, ask before generating — never invent them:**
+2. **Interview the user — don't just collect, draw out.** Ask the high-impact items below that are still unknown, then **follow up** on the answers: probe vague capabilities ("plan my day" → planned *how*, from what inputs?), push on the non-goals ("so explicitly *not* X — confirm?"), and surface the implicit (the user who's never mentioned, the integration the workflow obviously needs). **Keep interviewing until no assumption that would materially shape the PRD can still be resolved by asking** — then stop and default the genuinely lower-impact or unknowable-by-asking remainder, recording each as an assumption / Open Question for the user to confirm. Don't interrogate past that point; a bounded conversation, not an endless form.
+3. **Lead with the high-impact items. If any of these five are undetermined, ask before generating — never invent them:**
    - **What & who** — what is the product in one sentence, and who is the primary user?
    - **Problem & success** — what problem does it solve, and what does "working well" look like?
    - **Must-have capabilities** — the small set of things that define a usable MVP.
    - **Non-goals** — what is explicitly out of scope? (As important as the goals; it's what stops scope creep.)
    - **Hard constraints & external systems** — platform (web/desktop/mobile), cost ceilings, offline/local-only, corporate/IT limits, and which existing tools or APIs it must work with.
-3. **Assume sensible defaults for the rest** and record each assumption rather than blocking on it. A draft the user corrects beats a long interrogation.
-4. **When unsure, scope smaller.** Prefer the tighter MVP and a richer Future Roadmap over a bloated must-have list. It is easier to add a requirement than to cut a half-built one.
+4. **Assume sensible defaults only for what's left after the interview** — the lower-impact remainder — and record each assumption rather than blocking on it. A draft the user corrects beats a long interrogation, but on first creation, *don't default away an answer the user could have given you in one question.*
+5. **When unsure, scope smaller.** Prefer the tighter MVP and a richer Future Roadmap over a bloated must-have list. It is easier to add a requirement than to cut a half-built one.
 
-Present the high-impact questions as one short block, with examples or defaults shown so the user can answer quickly. Explain briefly why you're asking when it isn't obvious.
+Open with the high-impact questions as one short block (with examples or defaults shown so the user can answer quickly, and a brief why where it isn't obvious), then interview from their answers — follow-ups can come in a second short round rather than all up front. This is a conversation, not a single questionnaire dump.
 
 **High-impact — ask if unknown:** what & who · problem & success · must-have capabilities · non-goals · hard constraints & external systems.
 
@@ -138,6 +139,6 @@ This skill owns requirements, not design. Do **not** put tech-stack choices, arc
 Input: "A personal dashboard that pulls my Jira tickets and calendar into one screen so I can plan my day, runs on my machine, no cloud."
 High-impact resolved: solo user; problem = tool-switching at day start; must-haves = unified ticket+calendar view, daily plan; non-goals = not a Jira/Outlook replacement, not multi-user, not cloud; constraints = local-only, free tier, corporate IT limits, integrates Jira + calendar feed. The PRD captures personas, user stories, ID'd functional requirements, the local-only constraint, and a §10 handoff noting "single-user, local persistence, integrates Jira/calendar/AI" for the architect — but makes no stack or schema decisions.
 
-**Example 2 — vague start**
+**Example 2 — vague start (interview mode)**
 Input: "I want to build a booking app."
-Almost nothing high-impact is determined, so the skill asks the five high-impact questions (what & who, problem & success, must-haves, non-goals, constraints/integrations) before writing anything — and scopes the MVP tight, pushing speculative features to the roadmap.
+Almost nothing high-impact is determined, so the skill **interviews** rather than guessing a generic booking app. It asks the five high-impact questions, then *follows up on the answers*: "bookings for what — appointments, rooms, events?" → "salon appointments" surfaces who books (clients self-serve vs. staff entering), whether payment is taken at booking, what a double-booking should do, and whether reminders are in scope — none of which the user volunteered. Only once no booking-shaping answer is still askable does it write the PRD, scoping the MVP tight and pushing speculative features (multi-location, marketplace) to the roadmap as recorded assumptions.
