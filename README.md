@@ -2,73 +2,87 @@
 
 A chained set of Claude Code skills that take a web app from a rough idea to a running, verified foundation — **spec-first**. Each skill writes a file; the next one reads it. You never repeat yourself, and the architecture you get is sized to what the app actually needs instead of a one-size-fits-all template.
 
-```
-  IDEA
-   │
-   ▼
-┌─────────────────────┐   writes    specs/PRD.md            ← what & why
-│ product-requirements│ ──────────▶ (the whole product)
-└─────────────────────┘
-   │
-   ▼
-┌─────────────────────┐   writes    specs/ARCHITECTURE.md   ← how it's built
-│  web-app-architect  │ ──────────▶ (stack, gates, phases)
-└─────────────────────┘
-   │
-   ▼
-┌─────────────────────┐   writes    /poc/ + POC-NOTES.md    ← a quick glimpse
-│    poc-developer    │ ──────────▶ (throwaway, mock data)     (optional)
-└─────────────────────┘   greenfield: hints the scaffolder.
-   │                      brownfield (real app exists): a
-   │                      "quick response" spike of one change,
-   │                      mocking the real seam → feature-spec
-   ▼
-┌─────────────────────┐   writes    specs/DESIGN.md +       ← the look & feel,
-│     ux-designer     │ ──────────▶ specs/design/ (PORTABLE)    a portable bundle
-└─────────────────────┘   tokens + buildless preview +        (optional, exportable)
-   │                      BUNDLE.md — inheritable into
-   │                      any project
-   ▼
-┌─────────────────────┐   writes    specs/DESIGN-BINDING.md ← wires the portable
-│    design-binder    │ ──────────▶ + specs/design/themes/      design system to
-└─────────────────────┘   maps PRD flows + ARCHITECTURE       THIS project (optional)
-   │                      routes → bundle components,
-   │                      + project theme + stack adapter
-   ▼
-┌─────────────────────┐   writes    your codebase           ← Phase-0 foundation, proven
-│  web-app-scaffolder │ ──────────▶ (scaffolded + verified)
-└─────────────────────┘   reads POC-NOTES.md as hints,
-   │                      adopts the bundle + binding
-   │
-   ▼
- ┌── BUILD FEATURES (loop, one feature at a time) ────────────────┐
- │                                                                │
- │  ┌──────────────────┐  writes  specs/features/*.md  ← how a    │
- │  │   feature-spec   │ ───────▶ (deep, per-feature)    feature  │
- │  └──────────────────┘                                 behaves  │
- │           │                                                    │
- │           ▼                                                    │
- │  ┌───────────────────┐  writes  code + tests         ← builds  │
- │  │ feature-developer │ ──────▶ (+ specs/REUSE.md)      to spec │
- │  └───────────────────┘  reuse-first, within ARCHITECTURE       │
- │                                                                │
- └────────────────────────────────────────────────────────────────┘
+> **Looking for one skill in depth?** Each skill has its own reference page (how it works, sample prompts, what it produces, who depends on it) under [`docs/skills/`](docs/skills/README.md). This README is the overview and end-to-end walkthrough.
+
+**The pipeline — order of stages.** The solid spine is always run; the dashed stages are optional and gated to what the app needs. After scaffolding you stay in the per-feature build loop.
+
+```mermaid
+%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+flowchart TD
+    IDEA([idea]) --> PRD[product-requirements]
+    PRD --> ARCH[web-app-architect]
+    ARCH --> SCAF[web-app-scaffolder]
+    SCAF --> LOOP
+
+    subgraph OPT [optional · gated to what the app needs]
+        direction TB
+        QUAL[quality-requirements]
+        POC[poc-developer]
+        UX[ux-designer]
+        BIND[design-binder]
+        UX -.-> BIND
+    end
+
+    PRD -.-> QUAL
+    QUAL -.-> ARCH
+    ARCH -.-> POC
+    POC -.-> SCAF
+    ARCH -.-> UX
+    BIND -.-> SCAF
+
+    subgraph LOOP [build loop · one feature at a time, repeat]
+        direction LR
+        SPEC[feature-spec] --> DEV[feature-developer]
+        DEV -. next feature .-> SPEC
+    end
+
+    classDef optional stroke-dasharray: 5 5;
+    class QUAL,POC,UX,BIND optional;
 ```
 
-## The eight skills
+**The artifacts — who reads whose file.** Each skill writes a file under `specs/` (or your codebase); the arrows show which downstream skill consumes it. The `QUALITY.md ⇄ ARCHITECTURE.md` seam is bidirectional — the architect designs to the targets, and an infeasible target routes back to renegotiate.
+
+```mermaid
+%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+flowchart TD
+    PRD["PRD.md"]
+    PRD --> QUAL["QUALITY.md"]
+    PRD --> ARCH["ARCHITECTURE.md"]
+    PRD --> DESIGN["DESIGN.md + bundle"]
+    PRD --> FEAT["features/*.md"]
+
+    QUAL <--> ARCH
+
+    ARCH --> POC["POC-NOTES.md"]
+    ARCH --> BIND["DESIGN-BINDING.md + theme"]
+    DESIGN --> BIND
+
+    POC -. brownfield .-> FEAT
+
+    ARCH --> CODE[("your codebase")]
+    BIND --> CODE
+    FEAT --> CODE
+    POC -. hints .-> CODE
+    CODE <--> REUSE["REUSE.md"]
+```
+
+## The nine skills
+
+Each skill below links to its own reference page — how it works, sample prompts, what it produces, and who depends on it. See [`docs/skills/`](docs/skills/README.md) for the full index.
 
 | Skill | Stage | Reads | Writes |
 |---|---|---|---|
-| `product-requirements` | Define the product | the conversation | `specs/PRD.md` |
-| `web-app-architect` | Design the build | `specs/PRD.md` | `specs/ARCHITECTURE.md` |
-| `poc-developer` | Spike a quick glimpse — or a "quick response" spike of one change against an existing app *(optional)* | `specs/ARCHITECTURE.md`; brownfield also reads the real code as context | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
-| `ux-designer` | Design the look & feel — a **portable** bundle *(optional)* | `specs/PRD.md` (persona/mood) + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + `specs/design/` (portable bundle: neutral tokens + buildless preview + `BUNDLE.md`) |
-| `design-binder` | Wire the design system to **this** project *(optional)* | `specs/DESIGN.md` (the bundle) + `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN-BINDING.md` + `specs/design/themes/<project>` |
-| `web-app-scaffolder` | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | your codebase |
-| `feature-spec` | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
-| `feature-developer` | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | code + tests + `specs/REUSE.md` |
+| [`product-requirements`](docs/skills/product-requirements.md) | Define the product | the conversation | `specs/PRD.md` |
+| [`web-app-architect`](docs/skills/web-app-architect.md) | Design the build | `specs/PRD.md` + `specs/QUALITY.md` (targets) | `specs/ARCHITECTURE.md` |
+| [`quality-requirements`](docs/skills/quality-requirements.md) | Set non-functional targets *(optional)* | `specs/PRD.md` | `specs/QUALITY.md` |
+| [`poc-developer`](docs/skills/poc-developer.md) | Spike a quick glimpse — or a "quick response" spike of one change against an existing app *(optional)* | `specs/ARCHITECTURE.md`; brownfield also reads the real code as context | `/poc/` (throwaway) + `specs/POC-NOTES.md` |
+| [`ux-designer`](docs/skills/ux-designer.md) | Design the look & feel — a **portable** bundle *(optional)* | `specs/PRD.md` (persona/mood) + `specs/POC-NOTES.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN.md` + `specs/design/` (portable bundle: neutral tokens + buildless preview + `BUNDLE.md`) |
+| [`design-binder`](docs/skills/design-binder.md) | Wire the design system to **this** project *(optional)* | `specs/DESIGN.md` (the bundle) + `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/DESIGN-BINDING.md` + `specs/design/themes/<project>` |
+| [`web-app-scaffolder`](docs/skills/web-app-scaffolder.md) | Stand up the foundation | `specs/ARCHITECTURE.md` + `specs/POC-NOTES.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | your codebase |
+| [`feature-spec`](docs/skills/feature-spec.md) | Detail one feature | `specs/PRD.md` + `specs/ARCHITECTURE.md` | `specs/features/<feature>.md` |
+| [`feature-developer`](docs/skills/feature-developer.md) | Build one feature | `specs/features/<feature>.md` + `specs/ARCHITECTURE.md` + `specs/REUSE.md` + `specs/DESIGN.md` + `specs/DESIGN-BINDING.md` | code + tests + `specs/REUSE.md` |
 
-They run in that order: **PRD → architecture → (optional PoC) → (optional design system → design binding) → scaffold**, then a per-feature **build loop**. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real.
+They run in that order: **PRD → architecture → (optional PoC) → (optional design system → design binding) → scaffold**, then a per-feature **build loop**. [`quality-requirements`](docs/skills/quality-requirements.md) is the optional non-functional companion to the PRD — it sits after the PRD and **alongside the architect**, owning the *how-well* (performance, availability, security, accessibility, observability, and a first-class GDPR section) as measurable `NFR-0X` targets in `specs/QUALITY.md` that the architect designs to. The PoC is an optional, disposable spike — a clickable mock-data prototype — and it auto-detects two modes. **Greenfield** (no real app yet) shows what the app could feel like before committing, and leaves `specs/POC-NOTES.md` as hints the scaffolder reads so the real foundation starts closer to reality. **Brownfield** (a real app already exists) is a **"quick response" spike**: it reads the real code as context to learn the seam a change would plug into, builds just that change in `/poc` against a *mocked* version of the seam (never copying or touching real code), and hands off to `feature-spec` → `feature-developer` to build it for real.
 
 The design layer is **two optional skills with a deliberate split**. `ux-designer` establishes the durable visual & interaction language as a **portable, project-agnostic bundle** — `specs/DESIGN.md` + `specs/design/` (stack-neutral tokens, a *zero-build* style-guide preview that opens with no app, and a `BUNDLE.md` manifest). Because it carries no project specifics, the bundle is **exportable**: copy it into another project and reuse the same design system. `design-binder` then **wires that portable system to *this* project** — reading the PRD's flows and the architecture's routes/stack to write `specs/DESIGN-BINDING.md` (which bundle components/tokens realize each screen, plus the chosen stack adapter) and a project **theme override** under `specs/design/themes/` (the brand instance, layered on the bundle without changing it). The scaffolder adopts **both** (the bundle as the language, the binding as how this project uses it) and every feature conforms to both.
 
@@ -82,6 +96,7 @@ Each skill is a folder containing a `SKILL.md`. Drop them into one of Claude Cod
 .claude/skills/                 # project-level: committed with the repo, shared with your team
 ├── product-requirements/SKILL.md
 ├── web-app-architect/SKILL.md
+├── quality-requirements/SKILL.md
 ├── poc-developer/SKILL.md
 ├── ux-designer/SKILL.md
 ├── design-binder/SKILL.md
