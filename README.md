@@ -7,14 +7,15 @@ A chained set of Claude Code skills that take a web app from a rough idea to a r
 **The pipeline — order of stages.** The solid spine is always run; the dashed stages are optional and gated to what the app needs. After scaffolding you stay in the per-feature build loop.
 
 ```mermaid
-flowchart LR
+%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+flowchart TD
     IDEA([idea]) --> PRD[product-requirements]
     PRD --> ARCH[web-app-architect]
     ARCH --> SCAF[web-app-scaffolder]
     SCAF --> LOOP
 
     subgraph OPT [optional · gated to what the app needs]
-        direction LR
+        direction TB
         QUAL[quality-requirements]
         POC[poc-developer]
         UX[ux-designer]
