@@ -56,7 +56,27 @@ State it plainly, e.g. *"Real app detected — running in brownfield 'quick resp
 **Check for `/poc/` and `specs/POC-NOTES.md`.**
 
 - **Absent → Bootstrap.** Pick the slice — **interview enough to nail *which* slice and what "it works" looks like** before building (a spike aimed at the wrong slice wastes the whole effort) — build the mock-data prototype, write the hints. The interview is deliberately narrow here: the slice/change is the one thing worth blocking on; everything else is defaulted (the PoC is throwaway, so an imperfect default is cheap to redo).
-- **Present → Iterate.** Read `POC-NOTES.md` first. Extend or revise the spike (add a screen, try an interaction), keep it mock-only, update `POC-NOTES.md` + its changelog. Don't let the notes drift from what the PoC actually shows. (A brownfield iterate may add a second targeted change; keep each disposable.)
+- **Present → Iterate.** Read `POC-NOTES.md` first. Extend or revise the spike (add a screen, try an interaction), keep it mock-only, update `POC-NOTES.md` + its changelog. Don't let the notes drift from what the PoC actually shows. (A brownfield iterate may add a second targeted change; keep each disposable.) **PoC iteration is a feedback loop, not a leaf** — when an iteration carries a *design-change* or *requirement-change* sentiment (not just a visual tweak), the PoC **orchestrates the owning skill in the same iteration** so design + requirements + notes move together. See **Iterate orchestration** below.
+
+## Iterate orchestration — propagate the loop to the owning skills
+
+PoC iteration is the fast feedback surface for the upstream specs: in practice the loop is *change design/requirements → see it in the spike → amend design/requirements again*. So on **every iterate**, after you understand the requested change, **classify the user's intent from their wording** and propagate to the owning skills — each writes **its own** file; the PoC still never writes PRD/DESIGN/DESIGN-BINDING itself (one concept, one owner). POC-NOTES is always updated.
+
+**Classify by sentiment, then act:**
+
+| The user's intent reads as… | Action |
+|---|---|
+| **Visual tweak** — a throwaway spike adjustment, no change to intent (e.g. "nudge the spacing", "try it in blue", "make this bigger") | **POC-NOTES.md only.** Do **not** orchestrate. The PoC is meant to absorb experiments cheaply. |
+| **Design change** — the visual/interaction *language* changes: a new/changed component, token, or pattern meant to be real (e.g. "this card style is the one", "change the type scale", "make this interaction our standard") | **Invoke `ux-designer`** (it updates `DESIGN.md` + `specs/design/`). If the change is a **brand/theme/screen-mapping** shift (not the language itself), **invoke `design-binder`** (it updates `DESIGN-BINDING.md` + the project theme). Both may fire. |
+| **Requirement change** — product scope or behaviour changes (e.g. "users also need bulk-select", "this flow should branch", a new acceptance condition) | **Invoke `product-requirements`** (it updates `PRD.md`). Brownfield behaviour detail for a specific feature → route to **`feature-spec`** instead. |
+| **Unclear which** — the wording is ambiguous between a tweak and a real change | **Ask the user** (don't assume). One question: "Is this just a spike tweak, or should it update the real {design/requirements}?" Then act on the answer. |
+| **Always** | Update `POC-NOTES.md` + its Changelog with what the iteration showed and which skills it propagated to. |
+
+**Rules of the orchestration:**
+- **Multiple can fire in one iteration.** A single iteration that changes both a component *and* a flow invokes `ux-designer` **and** `product-requirements`, then updates POC-NOTES — your "all at the same time" loop.
+- **Orchestrate, don't author.** The PoC invokes the owning skill and lets *it* write its file; the PoC never edits PRD/DESIGN/DESIGN-BINDING directly. This keeps every clean seam intact — the PoC is the loop's driver, not an upstream author.
+- **Sentiment over keywords.** A magnitude/intent read ("is this meant to be real?"), not a wordlist. When genuinely unsure, the rule is **ask, never assume** — the throwaway spike has the lowest authority in the suite and must not silently mutate a source of truth.
+- **Bootstrap is unaffected.** This is an **iterate**-mode behavior. First-creation just builds the spike and writes the notes (§B4/§G4); there's nothing upstream-of-the-PoC to amend yet.
 
 ---
 
@@ -169,10 +189,13 @@ Anything that fought back or surprised you during the spike.
 Where the PoC intentionally ignored the architecture for speed and why.
 Flags nothing to change in the architecture — just notes the gap.
 
-## 7. Open questions surfaced
-Product or design questions the spike raised. Route product-level ones to
-product-requirements; architectural ones to web-app-architect; behaviour-spec
-gaps (brownfield) to feature-spec.
+## 7. Open questions surfaced / propagated this iteration
+Product or design questions the spike raised, and — on iterate — which owning
+skills this iteration propagated to (see Iterate orchestration). Design-language
+changes go to ux-designer; brand/theme/mapping to design-binder; product/scope to
+product-requirements; brownfield behaviour-spec gaps to feature-spec; architectural
+ones to web-app-architect. Record what fired vs. what stayed a visual tweak (notes
+only), so the loop is auditable.
 
 ## 8. Changelog
 Dated entries for each spike/iteration.
@@ -190,6 +213,7 @@ Dated entries for each spike/iteration.
 - On any change, update the relevant notes section **and** add a Changelog entry.
 - Keep it mock-only. The moment the user wants real data/auth/DB (greenfield) or the change built for real (brownfield), hand off — don't grow the PoC into the real app.
 - If the spike surfaces a product/architecture/behaviour decision, route it to the owning skill; don't bake it silently into the PoC.
+- **On iterate, propagate the loop (see Iterate orchestration):** classify the change by the user's sentiment — a *visual tweak* updates POC-NOTES only; a *design change* invokes `ux-designer` (and `design-binder` for brand/theme); a *requirement change* invokes `product-requirements` (or `feature-spec` for brownfield behaviour). When unclear, **ask — don't assume.** Each owning skill writes its own file; the PoC orchestrates but never authors PRD/DESIGN/DESIGN-BINDING itself.
 
 ## Examples
 
@@ -200,3 +224,7 @@ Dated entries for each spike/iteration.
 **Example 3 — declining to copy real code.** Brownfield app present. User: "Just copy the real checkout flow into the PoC so the demo is the actual thing." The skill declines: copying real code into `/poc` breaks the disposable handoff, drifts instantly, and drags in the dependency graph. It offers either a proper quick-response spike (mock the checkout seam with real shapes, make only the new bit interactive) *or*, if they want the actual thing wired in, to hand off to `feature-spec` → `feature-developer` to build it for real — rather than smuggling production code under the PoC banner.
 
 **Example 4 — bare idea, no upstream docs.** User: "I have an idea for a habit tracker — can you spike something so I can see it?" No PRD/architecture, no real app → **greenfield**. The skill notes a PRD/architecture would normally come first but a quick glimpse is a fine reason to skip ahead, picks the hero flow (mark a habit done → see the streak), builds a tiny mock-data `/poc`, and writes `POC-NOTES.md` (greenfield) with the validated streak interaction and product/architecture questions routed to `product-requirements` / `web-app-architect`.
+
+**Example 5 — iterate orchestrates design + requirements together.** A `/poc` and `POC-NOTES.md` already exist for the invoice spike. User: "Looking at it — the card style here should be our standard everywhere, and actually invoices also need a bulk-select action." The skill reads `POC-NOTES.md`, applies the change to the spike, and **classifies two sentiments**: "card style is our standard" = a **design-language change** → invokes `ux-designer` (updates `DESIGN.md` + tokens); "invoices also need bulk-select" = a **requirement change** → invokes `product-requirements` (updates `PRD.md` with a new `FR`). Both fire in the one iteration; each writes its own file; the PoC then updates `POC-NOTES.md` §7 noting what propagated. The PoC never edits PRD/DESIGN itself.
+
+**Example 6 — tweak vs. change, asks when unclear.** Same iterating spike. User: "make the reminder banner blue." Reads as a **visual tweak** (no intent change) → the skill just adjusts the spike and updates `POC-NOTES.md`; it does **not** wake `ux-designer`. Later: "change the spacing scale." Ambiguous — a one-off spike nudge, or the real type/space system? The skill **asks** ("just a spike tweak, or should this update the real design system?") rather than assuming; on "the real system" it invokes `ux-designer`, on "just the spike" it stays notes-only.
