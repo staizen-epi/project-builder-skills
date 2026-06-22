@@ -28,6 +28,22 @@ Not every feature earns a file, and not every feature fits in *one* file — bot
 
 If it's borderline between these, ask the user which size fits rather than defaulting.
 
+### Right-sizing gate — bias to the cheaper path
+
+The choice above isn't only about file size; it's about how much process a change earns, and the default should be **cheap**. Authoring and later re-reading a spec is real token cost, so don't spin one up unless the change needs it. Use an **objective** test, not a vibe — write a spec only if the change does **any** of:
+
+- touches more than one module / spans more than one screen or flow,
+- alters the data model or a shared contract (API shape, schema, types),
+- adds a genuinely new user-facing flow (not a variant of an existing one),
+- has non-obvious rules, limits, or multiple states/failure modes,
+- introduces a new dependency or integration.
+
+If **none** apply, it's a small, well-understood change: **don't write a spec** — leave it as its PRD row and let `feature-developer` build it straight from that row. (This is the same fast path the developer's spec-less escape hatch expects.)
+
+> **Bias to cheap only where being wrong is also cheap.** Take the no-spec fast path for **reversible, single-module** changes, where a misjudgement costs one quick redo. For **data-model or cross-cutting** changes, write the spec even if it looks small — under-speccing those is expensive to unwind. The asymmetry is the rule: go cheap where the cost of error is cheap.
+
+> **Escalation escape hatch.** Right-sizing is a fast judgement made up front, so it will sometimes wave through a change that turns out bigger mid-build. That's expected and recoverable: if `feature-developer` discovers a "small" change actually touches the data model or branches a flow, it **stops and routes back here** to write the spec properly — a one-time correction, not a silent improvisation. A misclassification escalating upward is the system working, not failing.
+
 > **A spec-less requirement is still a real requirement.** Leaving a feature in the PRD means it has no *spec*, not that it won't be built — `feature-developer` builds it directly from the PRD row. Don't treat "too small for a spec" as "out of scope."
 
 ## Two modes
@@ -50,6 +66,8 @@ Read `specs/PRD.md` and pin down what this feature inherits, so you expand the P
 - **Constraints & non-goals** — anything in the PRD that bounds this feature (platform limits, cost, "not X"). Honour them.
 
 **Don't contradict or outgrow the PRD silently.** If specifying the feature surfaces new top-level scope — a new user type, a new integration, a new non-goal to revise, **or a sibling feature the PRD never declared** (e.g. this feature depends on "comments" but there's no PRD row for it) — route that back through the `product-requirements` skill to add/update the PRD row, then continue here. The PRD stays the source of truth for *what exists*; this spec details *how it behaves*. (A missing dependency you merely *note* in §8 isn't enough if it's genuinely a new feature — that's new scope and belongs in the PRD.)
+
+**Brownfield — locate the integration seam (read the real code).** If this feature is a *change to an existing app* rather than a greenfield addition, this skill owns finding where it plugs in — the job that used to be smuggled in via a PoC. Read the relevant **real** code as context (read-only; never edit it here) and identify the seam: the component(s) it sits next to, the data/types it consumes, the function/hook/endpoint it calls, the route/layout slot it lands in — by their **real names and shapes**. Record the seam in the spec's **§8 Dependencies** so `feature-developer` plugs it in without rediscovering it. This is a *hint to verify*, not a guarantee — the developer reconfirms the path before trusting it (same discipline as `REUSE.md`). If a `specs/POC-NOTES.md` from an opt-in brownfield spike already names a seam, treat it as a starting hint and verify it against the code; you still own the seam in the spec. (Greenfield features have no existing seam — skip this.)
 
 ### Step 1 — Interview to capture the feature's behaviour
 
@@ -134,6 +152,9 @@ criteria observable and id-linked.
 ## 8. Dependencies
 Other features, data, or integrations this relies on or affects. Needs only —
 no technical design.
+[Brownfield only] **Integration seam** — the existing real files / components /
+hooks / endpoints / types this change wires into, by name (a hint for
+feature-developer to verify, not a design decision).
 
 ## 9. Open questions
 Unresolved decisions with their impact and status.
@@ -147,7 +168,7 @@ Dated entries for every change to this feature's requirements.
 This skill owns one feature's requirements in depth — not the product, not the design.
 
 - **Up:** don't restate or redecide product-level scope; that's the PRD. Expand it and link back.
-- **Down:** don't design the implementation; that's `ARCHITECTURE.md`. Capture data/integration *needs* as dependencies, not schemas or endpoints.
+- **Down:** don't design the implementation; that's `ARCHITECTURE.md`. Capture data/integration *needs* as dependencies, not schemas or endpoints. (Brownfield: *naming an existing real seam* the change wires into — the components/hooks/endpoints already in the code — is **locating**, not designing; it's allowed. Deciding new schemas/endpoints/stack is not.)
 - **Sideways:** keep distinct features in distinct files. If two features are deeply entangled, note the dependency and link — don't merge them into one sprawling spec. (Splitting *one* feature into a parent + children — see "Splitting into sub-features" — is the opposite move and is fine; that's still one feature, just sized to fit.)
 
 ## Maintenance mode rules

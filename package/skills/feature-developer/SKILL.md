@@ -43,7 +43,9 @@ This skill sits inside the build loop and needs both a spec and a foundation.
 
 ## Bootstrap mode
 
-### Step 0 — Read all three inputs before writing code
+### Step 0 — Read the relevant slices of the inputs before writing code
+
+**Read surgically, not wholesale.** These upstream artifacts are re-read on every feature, so the per-build read is a recurring token cost — pull the *sections this slice needs*, not whole files. Use each doc's index/headings to jump to the relevant part: from the PRD/feature index read **only the one feature spec** you're building (not every feature spec); from `ARCHITECTURE.md` read the conventions + §6 invariants + §7a testID scheme + the specific gates that are ON for this slice (skip sections for patterns this feature doesn't touch); from `DESIGN-BINDING.md` read **only the screen→component map for the screen(s) this feature touches**. `REUSE.md` is the exception — it's built to be scanned whole and is cheap. The list below names *what to extract*, not "read the file end to end."
 
 You are reading decisions, not making them — so this skill **derives** the slice from the spec + architecture rather than interviewing the user to invent behaviour. The "capture intent before creating" rule still binds, but it points *upstream*: where the spec leaves a behaviour genuinely undecided (a ⚠️ TBD, a missing state, an ambiguous rule), **don't guess it into code** — the intent must be captured in the owning artifact first. Route a behaviour gap to `feature-spec`, a technical-design gap to `web-app-architect`, and a visual-design gap to `ux-designer`/`design-binder`, then build from the settled answer. The only thing you may resolve yourself is implementation detail the spec deliberately left to the developer; everything that shapes *what the feature does* gets confirmed at its source, not assumed here. Pull:
 

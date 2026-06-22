@@ -1,6 +1,6 @@
 ---
 name: poc-developer
-description: Builds a fast, throwaway proof-of-concept — a clickable, mock-data prototype — and captures what it learned as durable hints. It works in two auto-detected modes. GREENFIELD (no real app code yet) spikes what the whole app could feel like before scaffolding, and hints the scaffolder. BROWNFIELD (a real app already exists) is a "quick response" spike that proves one targeted change against the current app: it reads the real code as context to learn the integration seam, then builds the change in /poc against a MOCKED version of that seam (never copying or importing real code), and hands off to feature-spec → feature-developer. Use it when the user wants to "see it working quickly", "spike it", "mock up the UI", "build a quick PoC/demo", "show me what this could look like", or — against an existing app — "spike this change", "what would X feel like in the real app", "quick response PoC of X". It writes disposable code to /poc and durable hints to specs/POC-NOTES.md. It never builds the real foundation (web-app-scaffolder), never re-opens architecture (web-app-architect), never authors the design system (ux-designer), and never wires the spike into the real app. If the user wants a production-ready skeleton or the real feature built, hand off rather than making the PoC real.
+description: Builds a fast, throwaway proof-of-concept — a clickable, mock-data prototype — and captures what it learned as durable hints. It works in two auto-detected modes. GREENFIELD (no real app code yet) spikes what the whole app could feel like before scaffolding, and hints the scaffolder — this is its near-default home. BROWNFIELD (a real app already exists) is an OPT-IN "quick response" spike, gated on experiential uncertainty: it is warranted only when a change is user-facing AND you genuinely can't decide the feel without seeing it. When invoked it reads the real code as context to learn the integration seam, then builds the change in /poc against a MOCKED version of that seam (never copying or importing real code), and hands off to feature-spec → feature-developer. When the brownfield change is already well understood (the common case), DON'T spike — go straight to feature-spec → feature-developer; the seam discovery happens there. Use it when the user wants to "see it working quickly", "spike it", "mock up the UI", "build a quick PoC/demo", "show me what this could look like", or — against an existing app — "spike this change", "what would X feel like in the real app", "quick response PoC of X". It writes disposable code to /poc and durable hints to specs/POC-NOTES.md. It never builds the real foundation (web-app-scaffolder), never re-opens architecture (web-app-architect), never authors the design system (ux-designer), and never wires the spike into the real app. If the user wants a production-ready skeleton or the real feature built, hand off rather than making the PoC real.
 ---
 
 # PoC Developer
@@ -9,10 +9,11 @@ This skill builds a **disposable spike**: the fastest possible clickable prototy
 
 It runs in **two auto-detected modes** depending on whether a real app already exists:
 
-- **Greenfield** — *no real app code yet.* Spike what the **whole app** could feel like, then hint the scaffolder.
+- **Greenfield** — *no real app code yet.* Spike what the **whole app** could feel like, then hint the scaffolder. This is the PoC's near-default home: a new app is almost always experientially uncertain.
   `PRD → ARCHITECTURE → **PoC (glimpse, mock data)** → scaffold (informed by PoC hints) → build features`
-- **Brownfield** — *a real app already exists.* A **"quick response" spike**: prove **one targeted change** against the current app, then hand off to the build loop.
-  `… running app → **PoC (quick-response spike of one change, mock data)** → feature-spec → feature-developer (build it for real)`
+- **Brownfield** — *a real app already exists.* An **opt-in "quick response" spike**, gated on experiential uncertainty (see "Brownfield gate" below): prove **one targeted change** against the current app *only when you need to see it to decide the feel*, then hand off to the build loop. For the common, well-understood change, skip the spike entirely.
+  `… running app → [gate: experientially uncertain?] → **PoC (quick-response spike, mock data)** → feature-spec → feature-developer`
+  `… running app → [gate: change already understood] → feature-spec → feature-developer (no PoC; feature-spec finds the seam)`
 
 In **both** modes there are two outputs with very different lifespans:
 
@@ -51,6 +52,18 @@ Before building, decide which mode you're in from the **repo state**, and say wh
 
 State it plainly, e.g. *"Real app detected — running in brownfield 'quick response' mode: I'll spike just the {X} change against a mock of its real seam, then hand off to feature-spec/feature-developer."*
 
+### Brownfield gate — is a spike even warranted? (decide before building)
+
+A brownfield PoC costs a **double build**: you implement the change once in `/poc` against a mock, throw it away, then build it for real in `feature-developer`. That cost only pays for itself when it buys down *experiential* uncertainty. So before spiking, gate on one question:
+
+> **Do you need to interact with this change to know what you want?** (user-facing **and** the feel/interaction isn't already decided)
+
+- **Yes → spike.** The change is user-facing and genuinely fuzzy ("what should this flow feel like?", a redesign, a new interaction pattern). Proceed to the brownfield bootstrap below. This is the minority case.
+- **No → don't spike; route to `feature-spec`.** The change is already understood (a known button, a validation-rule change, a new field, a backend tweak). The spike would only build the same thing twice. Say so plainly and point the user at `feature-spec` → `feature-developer`. **`feature-spec` owns the integration-seam read** for the real build — you are not the only path to the seam, so skipping the spike loses nothing.
+- **Greenfield is not gated this way** — a new app is assumed experientially uncertain, so the glimpse is the default there.
+
+This gate is the brownfield analogue of the suite's "gating, not templates" spine: bias to the cheaper path, and only pay for the spike where the cost of *not* seeing it first is real.
+
 ## Two run-states (per mode)
 
 **Check for `/poc/` and `specs/POC-NOTES.md`.**
@@ -60,7 +73,9 @@ State it plainly, e.g. *"Real app detected — running in brownfield 'quick resp
 
 ## Iterate orchestration — propagate the loop to the owning skills
 
-PoC iteration is the fast feedback surface for the upstream specs: in practice the loop is *change design/requirements → see it in the spike → amend design/requirements again*. So on **every iterate**, after you understand the requested change, **classify the user's intent from their wording** and propagate to the owning skills — each writes **its own** file; the PoC still never writes PRD/DESIGN/DESIGN-BINDING itself (one concept, one owner). POC-NOTES is always updated.
+> **Scope: this heavy orchestration is a GREENFIELD behaviour.** It pays off during *exploration*, where the product is genuinely being discovered turn by turn (change → see → amend the requirements/design). A **brownfield** spike is, by its gate, a bounded change you already understood enough to spike — so its iterate stays **lightweight**: adjust the spike, update `POC-NOTES.md`, and *point* the user at the owning skill (`feature-spec`/`ux-designer`) for any real change rather than auto-firing it. Don't run the full auto-invoke apparatus for a brownfield tweak; the change is about to be specced for real in `feature-spec` anyway. The table below applies in full to **greenfield**; in brownfield, treat it as "classify, note, and route by pointing."
+
+PoC iteration is the fast feedback surface for the upstream specs: in practice the loop is *change design/requirements → see it in the spike → amend design/requirements again*. So on **every greenfield iterate**, after you understand the requested change, **classify the user's intent from their wording** and propagate to the owning skills — each writes **its own** file; the PoC still never writes PRD/DESIGN/DESIGN-BINDING itself (one concept, one owner). POC-NOTES is always updated.
 
 **Classify by sentiment, then act:**
 
@@ -140,7 +155,7 @@ Default everything else:
 Boot the spike; confirm the targeted change clicks through against the mock. Show the user how to launch it and what to click.
 
 ### B4 — Write the hints
-Write `specs/POC-NOTES.md` (template below) in **brownfield framing** — reader is **`feature-spec` → `feature-developer`**. The carry-forward is the validated behaviour **and the real seam it plugs into** (named files/components/types). Then point the user at `feature-spec` to capture the change as a spec, which `feature-developer` then builds for real.
+Write `specs/POC-NOTES.md` (template below) in **brownfield framing** — reader is **`feature-spec` → `feature-developer`**. The carry-forward is the validated behaviour **and the real seam it plugs into** (named files/components/types). The seam you name here is a **hint to verify**, not the canonical record: `feature-spec` does its own seam read at its Step 0 and owns the seam in the spec — so don't treat the spike as the only path to it. Then point the user at `feature-spec` to capture the change as a spec, which `feature-developer` then builds for real.
 
 ---
 
@@ -226,5 +241,7 @@ Dated entries for each spike/iteration.
 **Example 4 — bare idea, no upstream docs.** User: "I have an idea for a habit tracker — can you spike something so I can see it?" No PRD/architecture, no real app → **greenfield**. The skill notes a PRD/architecture would normally come first but a quick glimpse is a fine reason to skip ahead, picks the hero flow (mark a habit done → see the streak), builds a tiny mock-data `/poc`, and writes `POC-NOTES.md` (greenfield) with the validated streak interaction and product/architecture questions routed to `product-requirements` / `web-app-architect`.
 
 **Example 5 — iterate orchestrates design + requirements together.** A `/poc` and `POC-NOTES.md` already exist for the invoice spike. User: "Looking at it — the card style here should be our standard everywhere, and actually invoices also need a bulk-select action." The skill reads `POC-NOTES.md`, applies the change to the spike, and **classifies two sentiments**: "card style is our standard" = a **design-language change** → invokes `ux-designer` (updates `DESIGN.md` + tokens); "invoices also need bulk-select" = a **requirement change** → invokes `product-requirements` (updates `PRD.md` with a new `FR`). Both fire in the one iteration; each writes its own file; the PoC then updates `POC-NOTES.md` §7 noting what propagated. The PoC never edits PRD/DESIGN itself.
+
+**Example 7 — brownfield gate declines the spike.** A scaffolded app runs. User: "Spike adding a CSV-export button to the invoice list." The change is user-facing but **not experientially uncertain** — an export button is a known pattern, the feel isn't in question. The skill applies the brownfield gate and *declines to spike*: building it in `/poc` then again in `feature-developer` is a wasteful double build for nothing learned. It routes straight to `feature-spec` (which reads the real `InvoiceList`/data seam itself) → `feature-developer`. *Contrast:* "Spike what a drag-to-reorder, inline-editing invoice grid would feel like" — user-facing **and** genuinely fuzzy, so the gate says *spike it*.
 
 **Example 6 — tweak vs. change, asks when unclear.** Same iterating spike. User: "make the reminder banner blue." Reads as a **visual tweak** (no intent change) → the skill just adjusts the spike and updates `POC-NOTES.md`; it does **not** wake `ux-designer`. Later: "change the spacing scale." Ambiguous — a one-off spike nudge, or the real type/space system? The skill **asks** ("just a spike tweak, or should this update the real design system?") rather than assuming; on "the real system" it invokes `ux-designer`, on "just the spike" it stays notes-only.
